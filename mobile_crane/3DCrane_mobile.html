@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>移動式起重機駕駛室模擬</title>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #000; font-family: "Microsoft JhengHei", sans-serif; }
+        #canvas-container { width: 100vw; height: 100vh; display: block; }
+        
+        #cockpit-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            box-shadow: inset 0 0 100px rgba(0,0,0,0.8);
+            border: 20px solid #333;
+            box-sizing: border-box;
+            z-index: 10;
+        }
+
+        #controls-container {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 250px;
+            background: transparent; 
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding-bottom: 20px;
+            z-index: 20;
+        }
+
+        .lever-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0 15px; 
+            width: 60px;
+            position: relative;
+        }
+
+        .label-top {
+            color: #0f0; 
+            font-size: 18px;
+            font-weight: bold;
+            text-shadow: 2px 2px 2px black;
+            margin-bottom: 5px;
+            pointer-events: none;
+        }
+        
+        .label-bottom {
+            color: #fff;
+            font-size: 18px;
+            font-weight: bold;
+            text-shadow: 2px 2px 2px black;
+            margin-top: 5px;
+            pointer-events: none;
+        }
+
+        .lever-name {
+            color: #aaa;
+            font-size: 12px;
+            margin-bottom: 2px;
+            text-shadow: 1px 1px 1px black;
+        }
+
+        .lever-track {
+            width: 40px;
+            height: 150px; 
+            background: rgba(0, 0, 0, 0.5); 
+            border-radius: 20px;
+            position: relative;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            box-shadow: inset 0 0 10px #000;
+            cursor: pointer;
+            touch-action: none; 
+        }
+
+        .lever-track::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 5px;
+            right: 5px;
+            height: 2px;
+            background: rgba(255, 255, 255, 0.5); 
+        }
+
+        .lever-handle {
+            width: 36px;
+            height: 36px;
+            background: radial-gradient(circle, #ff3333 0%, #990000 100%);
+            border: 2px solid #ff9999;
+            border-radius: 50%;
+            position: absolute;
+            left: 0px; 
+            top: 50%; 
+            transform: translate(0, -50%);
+            cursor: grab;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.8);
+            transition: top 0.1s ease-out; 
+        }
+
+        .lever-handle:active {
+            background: radial-gradient(circle, #ff6666 0%, #cc0000 100%);
+            cursor: grabbing;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="canvas-container"></div>
+    <div id="cockpit-overlay"></div>
+
+    <div id="controls-container">
+        <!-- 旋轉 -->
+        <div class="lever-group">
+            <div class="lever-name">旋轉</div>
+            <div class="label-top">左</div>
+            <div class="lever-track" id="track-swing">
+                <div class="lever-handle" id="handle-swing"></div>
+            </div>
+            <div class="label-bottom">右</div>
+        </div>
+
+        <!-- 起伏 (Boom Angle) -->
+        <div class="lever-group">
+            <div class="lever-name">起伏</div>
+            <div class="label-top">上</div> 
+            <div class="lever-track" id="track-luff">
+                <div class="lever-handle" id="handle-luff"></div>
+            </div>
+            <div class="label-bottom">下</div> 
+        </div>
+
+        <!-- 伸縮 (Telescope) -->
+        <div class="lever-group">
+            <div class="lever-name">伸縮</div>
+            <div class="label-top">伸</div>
+            <div class="lever-track" id="track-extend">
+                <div class="lever-handle" id="handle-extend"></div>
+            </div>
+            <div class="label-bottom">縮</div>
+        </div>
+
+        <!-- 吊鉤 (Winch) -->
+        <div class="lever-group">
+            <div class="lever-name">吊鉤</div>
+            <div class="label-top">升</div>
+            <div class="lever-track" id="track-hook">
+                <div class="lever-handle" id="handle-hook"></div>
+            </div>
+            <div class="label-bottom">降</div>
+        </div>
+    </div>
+
+    <!-- Three.js Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+    <script>
+        const SCALE = 3.0; 
+
+        // --- 1. Three.js 初始化 ---
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x87CEEB); 
+        scene.fog = new THREE.Fog(0x87CEEB, 60 * SCALE, 200 * SCALE);
+
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1 * SCALE, 1000 * SCALE);
+        
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight); 
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        container.appendChild(renderer.domElement);
+
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+        scene.add(ambientLight);
+
+        const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        dirLight.position.set(50 * SCALE, 100 * SCALE, 50 * SCALE);
+        dirLight.castShadow = true;
+        dirLight.shadow.camera.left = -80 * SCALE;
+        dirLight.shadow.camera.right = 80 * SCALE;
+        dirLight.shadow.camera.top = 80 * SCALE;
+        dirLight.shadow.camera.bottom = -80 * SCALE;
+        dirLight.shadow.mapSize.width = 2048;
+        dirLight.shadow.mapSize.height = 2048;
+        scene.add(dirLight);
+
+        // --- 2. 場景與考場 ---
+        const groundGeometry = new THREE.PlaneGeometry(400 * SCALE, 400 * SCALE);
+        const groundMaterial = new THREE.MeshLambertMaterial({ color: 0xcccccc });
+        const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+        ground.rotation.x = -Math.PI / 2;
+        ground.position.y = 0;
+        ground.receiveShadow = true;
+        scene.add(ground);
+
+        const mapSize = 1024;
+        const cx = mapSize / 2;
+        const cy = mapSize / 2;
+        const meter = 15; 
+        const R_pixels = 15 * meter; 
+
+        function createCourseTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = mapSize;
+            canvas.height = mapSize;
+            const ctx = canvas.getContext('2d');
+            
+            ctx.fillStyle = '#dddddd'; 
+            ctx.fillRect(0, 0, mapSize, mapSize);
+
+            function getPos(radius, angleRad) {
+                return {
+                    x: cx + radius * Math.cos(angleRad),
+                    y: cy + radius * Math.sin(angleRad)
+                };
+            }
+
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.lineWidth = 2.0 * meter; 
+            ctx.strokeStyle = '#2E7D32'; 
+
+            // 外弧線 (S -> A -> B)
+            ctx.beginPath();
+            ctx.arc(cx, cy, R_pixels, Math.PI, 1.5 * Math.PI);
+            ctx.stroke();
+
+            // 右側迴圈
+            const pB = getPos(R_pixels, 1.5 * Math.PI);
+            const pLoopBot = { x: cx + 5 * meter, y: cy - 5 * meter };
+            ctx.beginPath();
+            ctx.moveTo(pB.x, pB.y);
+            ctx.bezierCurveTo(cx + 18*meter, cy - 20*meter, cx + 18*meter, cy - 5*meter, pLoopBot.x, pLoopBot.y);
+            ctx.lineTo(pB.x, pB.y);
+            ctx.stroke();
+
+            // 直線回程 B -> S
+            const pS = getPos(R_pixels, Math.PI);
+            ctx.beginPath();
+            ctx.moveTo(pB.x, pB.y);
+            ctx.lineTo(pS.x, pS.y);
+            ctx.stroke();
+
+            ctx.lineWidth = 0.2 * meter;
+            ctx.strokeStyle = '#ffffff';
+            ctx.setLineDash([5, 5]);
+            ctx.stroke(); 
+
+            // S 點標記
+            ctx.fillStyle = '#2E7D32';
+            ctx.beginPath();
+            ctx.arc(pS.x, pS.y, 1.2 * meter, 0, Math.PI * 2);
+            ctx.fill();
+
+            // A 點標記位置
+            const pA = getPos(R_pixels, 1.25 * Math.PI);
+            ctx.save();
+            ctx.translate(pA.x, pA.y);
+            ctx.rotate(1.25 * Math.PI + Math.PI/2);
+            ctx.fillStyle = '#228B22';
+            ctx.fillRect(-2*meter, -1*meter, 4*meter, 2*meter);
+            ctx.restore();
+
+            // 中心十字 (0,0)
+            ctx.strokeStyle = '#006400';
+            ctx.lineWidth = 10;
+            ctx.setLineDash([]);
+            ctx.beginPath();
+            ctx.moveTo(cx - 30, cy); ctx.lineTo(cx + 30, cy);
+            ctx.moveTo(cx, cy - 30); ctx.lineTo(cx, cy + 30);
+            ctx.stroke();
+
+            const texture = new THREE.CanvasTexture(canvas);
+            return texture;
+        }
+
+        const courseMaterial = new THREE.MeshLambertMaterial({ map: createCourseTexture(), transparent: true, opacity: 0.85 });
+        const courseMesh = new THREE.Mesh(new THREE.PlaneGeometry(80 * SCALE, 80 * SCALE), courseMaterial);
+        courseMesh.rotation.x = -Math.PI / 2;
+        courseMesh.position.y = 0.05 * SCALE; 
+        scene.add(courseMesh);
+
+        function createObstacle(worldX, worldZ, rotationY, type = 'gate') {
+            const group = new THREE.Group();
+            group.position.set(worldX, 0, worldZ);
+            group.rotation.y = rotationY;
+            const sf = SCALE; 
+
+            if (type === 'gate') {
+                const poleGeo = new THREE.CylinderGeometry(0.1 * sf, 0.1 * sf, 3 * sf);
+                const poleMat = new THREE.MeshPhongMaterial({ color: 0xff6600 }); 
+                const pL = new THREE.Mesh(poleGeo, poleMat);
+                pL.position.set(-1.5 * sf, 1.5 * sf, 0);
+                const pR = new THREE.Mesh(poleGeo, poleMat);
+                pR.position.set(1.5 * sf, 1.5 * sf, 0);
+                const barGeo = new THREE.BoxGeometry(3.2 * sf, 0.1 * sf, 0.1 * sf);
+                const barMat = new THREE.MeshPhongMaterial({ color: 0xff0000 });
+                const bar = new THREE.Mesh(barGeo, barMat);
+                bar.position.set(0, 2.5 * sf, 0); 
+                group.add(pL, pR, bar);
+            } else if (type === 'pole') {
+                const poleGeo = new THREE.CylinderGeometry(0.1 * sf, 0.1 * sf, 3 * sf);
+                const poleMat = new THREE.MeshPhongMaterial({ color: 0xff6600 });
+                const pole = new THREE.Mesh(poleGeo, poleMat);
+                pole.position.y = 1.5 * sf;
+                group.add(pole);
+            }
+            scene.add(group);
+        }
+
+        createObstacle(-31.8, -31.8, Math.PI / 4 + Math.PI / 2, 'gate'); // A
+        createObstacle(0, -45, 0, 'gate'); // B
+        createObstacle(-22.5, -22.5, -Math.PI / 4, 'gate'); // D
+        createObstacle(30, -30, 0, 'pole'); // C
+
+        // --- 3. 起重機模型 ---
+        const cabGroup = new THREE.Group();
+        cabGroup.position.y = 1.0 * SCALE; 
+        scene.add(cabGroup);
+
+        const cabMesh = new THREE.Mesh(
+            new THREE.BoxGeometry(1.5 * SCALE, 2 * SCALE, 2 * SCALE),
+            new THREE.MeshLambertMaterial({ color: 0x2244aa }) 
+        );
+        cabMesh.position.set(1.2 * SCALE, 1 * SCALE, 0.5 * SCALE);
+        cabGroup.add(cabMesh);
+
+        const boomPivot = new THREE.Group();
+        boomPivot.position.set(0, 1.5 * SCALE, -1 * SCALE); 
+        cabGroup.add(boomPivot);
+
+        const boomSections = [];
+        const sectionLength = 8.0 * SCALE; 
+        const sectionWidth = 0.8 * SCALE; 
+        
+        const boom0 = new THREE.Mesh(new THREE.BoxGeometry(sectionWidth, sectionWidth, sectionLength), new THREE.MeshLambertMaterial({ color: 0xFFFF00 }));
+        boom0.position.set(0, 0, -sectionLength / 2); 
+        boomPivot.add(boom0);
+        boomSections.push(boom0);
+
+        for (let i = 1; i <= 4; i++) {
+            const mesh = new THREE.Mesh(new THREE.BoxGeometry(sectionWidth*(1-i*0.12), sectionWidth*(1-i*0.12), sectionLength), new THREE.MeshLambertMaterial({ color: i%2===0?0xFFFF00:0xDDDD00 }));
+            boomSections[i-1].add(mesh);
+            boomSections.push(mesh);
+        }
+
+        const tipSection = boomSections[4];
+        const hookGroup = new THREE.Group();
+        scene.add(hookGroup); 
+
+        hookGroup.add(new THREE.Mesh(new THREE.CylinderGeometry(0.3*SCALE, 0.3*SCALE, 0.5*SCALE), new THREE.MeshStandardMaterial({ color: 0x333333 })));
+        const loadMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.4*SCALE, 0.4*SCALE, 1*SCALE), new THREE.MeshStandardMaterial({ color: 0xff0000 }));
+        loadMesh.position.y = -1 * SCALE;
+        loadMesh.castShadow = true;
+        hookGroup.add(loadMesh);
+
+        const cableMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.05*SCALE, 0.05*SCALE, 1), new THREE.MeshBasicMaterial({ color: 0x111111 }));
+        cableMesh.geometry.translate(0, -0.5, 0); 
+        scene.add(cableMesh);
+
+        cabGroup.add(camera);
+        // 設定初始視角：位於駕駛座，看向前方地面
+        camera.position.set(1.2 * SCALE, 1.5 * SCALE, 0.5 * SCALE); 
+        camera.lookAt(0, 0, -20 * SCALE); 
+
+        // --- 4. 物理變數 ---
+        const state = { swingAngle: 0, boomAngle: 30, boomLength: 0, hookLength: 5 * SCALE };
+        const physics = {
+            pos: new THREE.Vector3(),  
+            oldPos: new THREE.Vector3(), 
+            gravity: new THREE.Vector3(0, -15.0 * SCALE, 0), 
+            damping: 0.992 
+        };
+
+        const limits = { minBoomAngle: 0, maxBoomAngle: 80, minBoomExt: 0, maxBoomExt: 60 * SCALE, minHookLen: 0.1, maxHookLen: 50 * SCALE };
+
+        // --- 5. 控制面板 ---
+        const inputs = { swing: 0, luff: 0, extend: 0, hook: 0 };
+        function setupLever(id, key) {
+            const track = document.getElementById(`track-${id}`);
+            const handle = document.getElementById(`handle-${id}`);
+            let drag = false;
+            const move = (y) => {
+                const r = track.getBoundingClientRect();
+                const v = Math.max(-1, Math.min(1, (r.top + r.height/2 - y) / (r.height/2)));
+                inputs[key] = v;
+                handle.style.top = `${50 - (v * 50)}%`;
+            };
+            const end = () => { drag = false; inputs[key] = 0; handle.style.transition = 'top 0.2s'; handle.style.top = '50%'; setTimeout(()=>handle.style.transition='', 200); };
+            track.addEventListener('mousedown', (e) => { drag = true; move(e.clientY); });
+            window.addEventListener('mousemove', (e) => { if(drag) move(e.clientY); });
+            window.addEventListener('mouseup', end);
+            track.addEventListener('touchstart', (e) => { drag = true; move(e.touches[0].clientY); e.preventDefault(); }, {passive: false});
+            window.addEventListener('touchmove', (e) => { if(drag) { move(e.touches[0].clientY); e.preventDefault(); } }, {passive: false});
+            window.addEventListener('touchend', end);
+        }
+        setupLever('swing', 'swing'); setupLever('luff', 'luff'); setupLever('extend', 'extend'); setupLever('hook', 'hook');
+
+        // --- 6. 核心迴圈 ---
+        const timeStep = 1 / 60; 
+
+        function updatePhysics() {
+            // 旋轉速度降低 50%
+            state.swingAngle += inputs.swing * 0.005;
+            state.boomAngle += inputs.luff * 0.15;
+            state.boomAngle = Math.max(limits.minBoomAngle, Math.min(limits.maxBoomAngle, state.boomAngle));
+            state.boomLength += inputs.extend * 0.05 * SCALE; 
+            state.boomLength = Math.max(limits.minBoomExt, Math.min(limits.maxBoomExt, state.boomLength));
+            state.hookLength -= inputs.hook * 0.1 * SCALE;
+            state.hookLength = Math.max(limits.minHookLen, Math.min(limits.maxHookLen, state.hookLength));
+
+            cabGroup.rotation.y = state.swingAngle;
+            boomPivot.rotation.x = THREE.MathUtils.degToRad(state.boomAngle);
+            const ext = state.boomLength / 4;
+            for (let i = 1; i <= 4; i++) boomSections[i].position.z = -ext;
+
+            const tipWorldPos = new THREE.Vector3(0, 0, -sectionLength).applyMatrix4(tipSection.matrixWorld);
+
+            const temp = physics.pos.clone();
+            const vel = new THREE.Vector3().subVectors(physics.pos, physics.oldPos).multiplyScalar(physics.damping);
+            const acc = physics.gravity.clone().multiplyScalar(timeStep * timeStep);
+            physics.pos.add(vel).add(acc);
+
+            const distVec = new THREE.Vector3().subVectors(physics.pos, tipWorldPos);
+            const correction = distVec.normalize().multiplyScalar(state.hookLength);
+            physics.pos.copy(tipWorldPos).add(correction);
+
+            physics.oldPos.copy(temp);
+
+            hookGroup.position.copy(physics.pos);
+            hookGroup.rotation.y = state.swingAngle;
+
+            const cableLen = tipWorldPos.distanceTo(hookGroup.position);
+            cableMesh.scale.set(1, cableLen, 1); 
+            cableMesh.position.copy(tipWorldPos); 
+            cableMesh.lookAt(hookGroup.position); 
+            cableMesh.rotateX(-Math.PI / 2); 
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            updatePhysics();
+            renderer.render(scene, camera);
+        }
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // --- 初始定位於 A 點並確保貨物落地 ---
+        function initPosition() {
+            // A 點角度與位置
+            state.swingAngle = Math.PI / 4;
+            state.boomAngle = 30; 
+            
+            // 計算到達 A 點所需的伸縮長度 (R=45)
+            // L_proj = Total_L * cos(30). Total_L = 45 / 0.866 = 51.9.
+            // MainBoom=8. Extension ~ 44.
+            state.boomLength = 44.0 * SCALE; 
+
+            // 強制更新矩陣，獲取精確的 tipWorldPos
+            cabGroup.rotation.y = state.swingAngle;
+            boomPivot.rotation.x = THREE.MathUtils.degToRad(state.boomAngle);
+            const ext = state.boomLength / 4;
+            for (let i = 1; i <= 4; i++) boomSections[i].position.z = -ext;
+            
+            scene.updateMatrixWorld(true); // 強制世界矩陣更新
+            
+            const tipWorldPos = new THREE.Vector3(0, 0, -sectionLength).applyMatrix4(tipSection.matrixWorld);
+
+            // 計算精確落地的高度
+            const loadHeightOffset = 1.5 * SCALE; 
+            const targetHookY = 0.01 * SCALE + loadHeightOffset; // 極低空
+            state.hookLength = tipWorldPos.y - targetHookY;
+            
+            physics.pos.set(tipWorldPos.x, targetHookY, tipWorldPos.z);
+            physics.oldPos.copy(physics.pos); 
+
+            // 調整攝影機對準落地後的貨物
+            camera.lookAt(physics.pos);
+        }
+
+        initPosition();
+        animate();
+
+    </script>
+</body>
+</html>
