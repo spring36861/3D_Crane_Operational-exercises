@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>危險性機械 3D 模擬教學中心</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f4f4f9; text-align: center; padding: 50px; }
+        .container { display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; }
+        .card { 
+            background: white; border-radius: 15px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); 
+            width: 250px; padding: 20px; transition: 0.3s; cursor: pointer; text-decoration: none; color: #333;
+        }
+        .card:hover { transform: translateY(-10px); box-shadow: 0 8px 16px rgba(0,0,0,0.2); }
+        .card img { width: 100%; border-radius: 10px; }
+        h1 { color: #2c3e50; }
+    </style>
+</head>
+<body>
+    <h1>危險性機械 3D 模擬入口</h1>
+    <p>請選擇下方的模擬項目進行練習</p>
+    
+    <div class="container">
+        <a href="crane/index.html" class="card">
+            <img src="https://via.placeholder.com/200x150?text=3D+Crane" alt="起重機">
+            <h3>移動式起重機</h3>
+            <p>包含 3D 模型旋轉與安全裝置檢查點演示。</p>
+        </a>
+
+        <a href="boiler/index.html" class="card">
+            <img src="https://via.placeholder.com/200x150?text=3D+Boiler" alt="鍋爐">
+            <h3>小型鍋爐模擬</h3>
+            <p>即將上線：內部構造與水位計觀察。</p>
+        </a>
+    </div>
+</body>
+</html>
