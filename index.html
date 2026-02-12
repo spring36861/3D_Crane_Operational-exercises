@@ -5,33 +5,39 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>危險性機械 3D 模擬教學中心</title>
     <style>
-        body { font-family: Arial, sans-serif; background-color: #f4f4f9; text-align: center; padding: 50px; }
+        body { font-family: "Microsoft JhengHei", Arial, sans-serif; background-color: #f4f4f9; text-align: center; padding: 50px; }
         .container { display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; }
         .card { 
             background: white; border-radius: 15px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); 
-            width: 250px; padding: 20px; transition: 0.3s; cursor: pointer; text-decoration: none; color: #333;
+            width: 280px; padding: 20px; transition: 0.3s; cursor: pointer; text-decoration: none; color: #333;
+            border: 1px solid #ddd;
         }
-        .card:hover { transform: translateY(-10px); box-shadow: 0 8px 16px rgba(0,0,0,0.2); }
-        .card img { width: 100%; border-radius: 10px; }
-        h1 { color: #2c3e50; }
+        .card:hover { transform: translateY(-10px); box-shadow: 0 8px 16px rgba(0,0,0,0.2); border-color: #007bff; }
+        .card img { width: 100%; height: 180px; object-fit: cover; border-radius: 10px; background-color: #eee; }
+        h1 { color: #2c3e50; margin-bottom: 10px; }
+        p { color: #666; }
+        .tag { display: inline-block; background: #e1f0ff; color: #007bff; padding: 4px 8px; border-radius: 4px; font-size: 0.8em; margin-bottom: 10px;}
     </style>
 </head>
 <body>
     <h1>危險性機械 3D 模擬入口</h1>
-    <p>請選擇下方的模擬項目進行練習</p>
+    <p>中華產業機械設備協會 - 數位教學資源</p>
+    <hr style="width: 50%; margin: 20px auto; border: 0; border-top: 1px solid #ccc;">
     
     <div class="container">
-        <a href="crane/index.html" class="card">
-            <img src="https://via.placeholder.com/200x150?text=3D+Crane" alt="起重機">
-            <h3>移動式起重機</h3>
-            <p>包含 3D 模型旋轉與安全裝置檢查點演示。</p>
+        <a href="crane/3Df_FixCrane.html" class="card">
+            <span class="tag">最新上架</span>
+            <img src="https://via.placeholder.com/280x180?text=3D+Fixed+Crane" alt="固定式起重機">
+            <h3>固定式起重機操作模擬</h3>
+            <p>包含吊掛作業範圍與操作室視角體驗。</p>
         </a>
 
-        <a href="boiler/index.html" class="card">
-            <img src="https://via.placeholder.com/200x150?text=3D+Boiler" alt="鍋爐">
-            <h3>小型鍋爐模擬</h3>
-            <p>即將上線：內部構造與水位計觀察。</p>
-        </a>
+        <div class="card" style="cursor: default; opacity: 0.6;">
+            <span class="tag" style="background: #eee; color: #999;">開發中</span>
+            <img src="https://via.placeholder.com/280x180?text=Coming+Soon" alt="開發中">
+            <h3>更多模擬即將推出</h3>
+            <p>鍋爐、移動式起重機等項目建置中...</p>
+        </div>
     </div>
 </body>
 </html>
