@@ -25,12 +25,14 @@
             cursor: pointer;
             margin-top: -8px;
             box-shadow: 0 0 5px rgba(0,0,0,0.3);
+            position: relative;
+            z-index: 10;
         }
         input[type=range]::-webkit-slider-runnable-track {
             width: 100%;
             height: 8px;
             cursor: pointer;
-            background: #e2e8f0;
+            background: #cbd5e1;
             border-radius: 4px;
         }
         /* 隱藏預設捲軸，讓 3D 體驗更好 */
@@ -43,8 +45,8 @@
         }
     </style>
 </head>
-<body class="bg-slate-100 min-h-screen font-sans text-slate-800">
-    <div id="root"></div>
+<body class="bg-slate-900 min-h-screen font-sans text-slate-800 flex items-center justify-center p-4">
+    <div id="root" class="w-full max-w-7xl h-[90vh] min-h-[600px]"></div>
 
     <script type="text/babel">
         const { useState, useEffect, useMemo, useRef } = React;
@@ -89,15 +91,16 @@
                 // 確保容器存在才繼續
                 if (!mountRef.current) return;
 
-                const initialWidth = mountRef.current.clientWidth || window.innerWidth / 2;
-                const initialHeight = mountRef.current.clientHeight || 500;
+                const initialWidth = mountRef.current.clientWidth || window.innerWidth;
+                const initialHeight = mountRef.current.clientHeight || window.innerHeight;
 
                 // 1. 場景與相機
                 const scene = new THREE.Scene();
-                scene.background = new THREE.Color('#1e293b'); // 深色背景 (slate-800) 讓蒸氣更明顯
+                scene.background = new THREE.Color('#0f172a'); // 更深的背景色以突顯 UI 與模型
                 
+                // 將相機稍微往左移一點，讓右側的控制面板不會遮擋到模型主體
                 const camera = new THREE.PerspectiveCamera(40, initialWidth / initialHeight, 0.1, 1000);
-                camera.position.set(0, 5, 30);
+                camera.position.set(-5, 5, 35); 
 
                 const renderer = new THREE.WebGLRenderer({ antialias: true });
                 renderer.setSize(initialWidth, initialHeight);
@@ -110,10 +113,10 @@
                 controls.maxPolarAngle = Math.PI / 2 + 0.2; // 限制視角不要跑到地底下太多
 
                 // 2. 燈光
-                const ambientLight = new THREE.AmbientLight(0xffffff, 0.5); // 稍微調暗全局光以突顯對比
+                const ambientLight = new THREE.AmbientLight(0xffffff, 0.5); 
                 scene.add(ambientLight);
                 
-                const dirLight = new THREE.DirectionalLight(0xffffff, 1.0); // 增強主光源讓金屬反光更漂亮
+                const dirLight = new THREE.DirectionalLight(0xffffff, 1.0); 
                 dirLight.position.set(10, 20, 15);
                 dirLight.castShadow = true;
                 scene.add(dirLight);
@@ -350,7 +353,7 @@
                     renderer.setSize(w, h);
                 };
 
-                // 使用 ResizeObserver 主動監聽容器尺寸變化，取代原本的 window resize
+                // 使用 ResizeObserver 主動監聽容器尺寸變化
                 const resizeObserver = new ResizeObserver(() => {
                     handleResize();
                 });
@@ -370,120 +373,113 @@
             }, []);
 
             return (
-                <div class="max-w-7xl mx-auto p-4 md:p-8 flex flex-col lg:flex-row gap-8">
+                <div className="relative w-full h-full rounded-2xl shadow-2xl overflow-hidden border border-slate-700 bg-slate-900 flex flex-col">
                     
-                    {/* 左側：3D 視覺演示區 */}
-                    <div class="flex-1 bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-200 flex flex-col min-h-[500px] lg:min-h-[700px]">
-                        <div class="bg-slate-800 text-white py-3 px-6 text-lg font-bold flex justify-between items-center z-10 relative shadow-md">
-                            <span>3D 內部作動透視圖 (可滑鼠拖曳旋轉)</span>
-                            <span className={`px-3 py-1 rounded-full text-sm font-bold ${
-                                valveState === 'OPEN' ? 'bg-red-500 text-white' : 
-                                valveState === 'SIMMERING' ? 'bg-yellow-400 text-black' : 'bg-emerald-500 text-white'
-                            }`}>
-                                {valveState === 'OPEN' ? '全開排放中' : 
-                                 valveState === 'SIMMERING' ? '初噴微啟' : '完全關閉'}
-                            </span>
-                        </div>
-                        {/* 3D Canvas 掛載點 */}
-                        <div ref={mountRef} class="flex-1 w-full h-full bg-slate-800 cursor-move relative overflow-hidden">
-                            {/* 覆蓋一層文字提示 */}
-                            <div class="absolute bottom-4 left-4 bg-slate-900/70 backdrop-blur-sm px-3 py-2 rounded-lg text-xs text-slate-300 font-bold pointer-events-none border border-slate-700">
-                                💡 提示：左鍵拖曳旋轉 / 滾輪縮放
-                            </div>
-                        </div>
+                    {/* 頂部資訊列 (絕對定位覆蓋) */}
+                    <div className="absolute top-0 left-0 right-0 z-20 bg-slate-900/80 backdrop-blur-md text-white py-3 px-6 text-lg font-bold flex justify-between items-center border-b border-slate-700/50">
+                        <span>3D 內部作動透視圖 (可滑鼠拖曳旋轉)</span>
+                        <span className={`px-4 py-1.5 rounded-full text-sm font-bold shadow-lg ${
+                            valveState === 'OPEN' ? 'bg-red-500 text-white' : 
+                            valveState === 'SIMMERING' ? 'bg-yellow-400 text-black' : 'bg-emerald-500 text-white'
+                        }`}>
+                            {valveState === 'OPEN' ? '全開排放中' : 
+                             valveState === 'SIMMERING' ? '初噴微啟' : '完全關閉'}
+                        </span>
                     </div>
 
-                    {/* 右側：控制面板與解說 */}
-                    <div class="w-full lg:w-[400px] flex flex-col gap-6 shrink-0">
+                    {/* 3D Canvas 背景 */}
+                    <div ref={mountRef} className="absolute inset-0 z-0 cursor-move"></div>
+
+                    {/* 浮動控制面板 (融合於畫面上方) */}
+                    <div className="absolute top-20 right-6 z-10 w-[340px] bg-white/95 backdrop-blur-xl p-6 rounded-2xl shadow-2xl border border-white/20">
+                        <h2 className="text-xl font-bold text-slate-800 mb-5 border-b border-slate-200 pb-2 flex items-center gap-2">
+                            ⚙️ 系統壓力控制
+                        </h2>
                         
-                        {/* 儀表板卡片 */}
-                        <div class="bg-white p-6 rounded-2xl shadow-lg border border-slate-200">
-                            <h2 class="text-2xl font-bold text-slate-800 mb-6 border-b pb-2 flex items-center gap-2">
-                                ⚙️ 系統壓力控制
-                            </h2>
+                        <div className="mb-6 relative">
+                            <div className="flex justify-between items-end mb-2">
+                                <label className="text-slate-600 font-semibold">內部壓力 (PSI)</label>
+                                <div className={`text-3xl font-black font-mono transition-colors ${
+                                    pressure >= SET_PRESSURE ? 'text-red-600' : 
+                                    pressure >= SIMMER_PRESSURE ? 'text-orange-500' : 'text-blue-600'
+                                }`}>
+                                    {pressure.toFixed(1)}
+                                </div>
+                            </div>
                             
-                            <div class="mb-8">
-                                <div class="flex justify-between items-end mb-2">
-                                    <label class="text-slate-600 font-semibold text-lg">內部壓力 (PSI)</label>
-                                    <div class={`text-4xl font-black font-mono transition-colors ${
-                                        pressure >= SET_PRESSURE ? 'text-red-600' : 
-                                        pressure >= SIMMER_PRESSURE ? 'text-orange-500' : 'text-blue-600'
-                                    }`}>
-                                        {pressure.toFixed(1)}
-                                    </div>
-                                </div>
-                                <input 
-                                    type="range" 
-                                    min="0" 
-                                    max={MAX_PRESSURE} 
-                                    step="0.5" 
-                                    value={pressure}
-                                    onChange={(e) => setPressure(parseFloat(e.target.value))}
-                                    class="w-full h-4 bg-slate-200 rounded-lg appearance-none cursor-pointer"
-                                />
-                                <div class="flex justify-between text-xs text-slate-400 mt-2 font-mono">
-                                    <span>0</span>
-                                    <span>{RESEAT_PRESSURE} (回座)</span>
-                                    <span>{SET_PRESSURE} (起跳)</span>
-                                    <span>{MAX_PRESSURE}</span>
-                                </div>
-                            </div>
-
-                            <div class="bg-slate-50 rounded-xl p-4 border border-slate-200">
-                                <h3 class="font-bold text-slate-700 mb-3">當前安全閥狀態</h3>
+                            <input 
+                                type="range" 
+                                min="0" 
+                                max={MAX_PRESSURE} 
+                                step="0.5" 
+                                value={pressure}
+                                onChange={(e) => setPressure(parseFloat(e.target.value))}
+                                className="w-full h-3 bg-slate-200 rounded-lg appearance-none cursor-pointer"
+                            />
+                            
+                            {/* 刻度標籤 */}
+                            <div className="relative w-full h-8 mt-1 text-[11px] text-slate-500 font-mono">
+                                <span className="absolute left-0 mt-2">0</span>
                                 
-                                {valveState === 'CLOSED' && (
-                                    <div class="flex items-start gap-3 text-emerald-700 bg-emerald-50 p-3 rounded-lg border border-emerald-200">
-                                        <div class="mt-1 text-2xl">🟢</div>
-                                        <div>
-                                            <div class="font-bold text-lg">關閉 (Closed)</div>
-                                            <p class="text-sm mt-1">壓力正常。頂部彈簧的下壓力量大於容器內部壓力，銅色閥瓣緊壓在底座上。</p>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {valveState === 'SIMMERING' && (
-                                    <div class="flex items-start gap-3 text-orange-700 bg-orange-50 p-3 rounded-lg border border-orange-200">
-                                        <div class="mt-1 text-2xl">🟡</div>
-                                        <div>
-                                            <div class="font-bold text-lg">初噴 / 微啟 (Simmering)</div>
-                                            <p class="text-sm mt-1">壓力接近設定值。向上推力幾乎抵銷彈簧力，閥瓣微幅抬起，小量蒸氣從右側排氣管洩出。</p>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {valveState === 'OPEN' && (
-                                    <div class="flex items-start gap-3 text-red-700 bg-red-50 p-3 rounded-lg border border-red-200">
-                                        <div class="mt-1 text-2xl animate-pulse">🔴</div>
-                                        <div>
-                                            <div class="font-bold text-lg">排放 / 起跳 (Popping)</div>
-                                            <p class="text-sm mt-1">壓力超標！閥門瞬間全開，大量蒸氣高速排出。<b>須等壓力降至 {RESEAT_PRESSURE} PSI 以下才會重新關閉。</b></p>
-                                        </div>
-                                    </div>
-                                )}
+                                <div className="absolute flex flex-col items-center" 
+                                     style={{ left: `${(RESEAT_PRESSURE / MAX_PRESSURE) * 100}%`, transform: 'translateX(-50%)' }}>
+                                    <div className="w-0.5 h-1.5 bg-slate-400 mb-0.5 rounded"></div>
+                                    <span>{RESEAT_PRESSURE}</span>
+                                    <span className="text-[9px] text-slate-400 -mt-1">(回座)</span>
+                                </div>
+                                
+                                <div className="absolute flex flex-col items-center" 
+                                     style={{ left: `${(SET_PRESSURE / MAX_PRESSURE) * 100}%`, transform: 'translateX(-50%)' }}>
+                                    <div className="w-0.5 h-1.5 bg-red-400 mb-0.5 rounded"></div>
+                                    <span className="text-red-500 font-bold">{SET_PRESSURE}</span>
+                                    <span className="text-[9px] text-red-400 -mt-1">(起跳)</span>
+                                </div>
+                                
+                                <span className="absolute right-0 mt-2">{MAX_PRESSURE}</span>
                             </div>
                         </div>
 
-                        {/* 教學說明卡片 */}
-                        <div class="bg-white p-6 rounded-2xl shadow-lg border border-slate-200 flex-1 overflow-y-auto no-scrollbar">
-                            <h2 class="text-xl font-bold text-slate-800 mb-4 border-b pb-2">📖 3D 組件說明與遲滯效應</h2>
-                            <ul class="space-y-4 text-slate-600 text-sm leading-relaxed">
-                                <li class="flex gap-2">
-                                    <span class="font-bold min-w-max text-slate-800">透視玻璃閥體：</span>
-                                    <span>藍色半透明的外殼設計讓您能清晰觀察內部<b>銅色閥瓣 (Disc)</b> 離開 <b>閥座 (Seat)</b> 的過程。</span>
-                                </li>
-                                <li class="flex gap-2">
-                                    <span class="font-bold min-w-max text-slate-800">動態彈簧：</span>
-                                    <span>位於頂部支架內，當起跳發生時，您可以觀察到彈簧被下方傳來的巨大力量瞬間壓縮。</span>
-                                </li>
-                                <li class="flex gap-2">
-                                    <span class="font-bold min-w-max text-slate-800 text-blue-600">啟閉壓差 (Blowdown)：</span>
-                                    <span>請嘗試將壓力推至 100 PSI 觸發全開，再往回拉到 90 PSI。您會發現閥門依然保持開啟狀態！這是因為流體力學中的「反衝盤作用」，必須降到 85 PSI 才能讓彈簧重新克服氣體推力使閥門回座。</span>
-                                </li>
-                            </ul>
-                        </div>
+                        {/* 狀態說明面板 */}
+                        <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 shadow-inner">
+                            <h3 className="font-bold text-slate-700 mb-2 text-sm">閥門狀態</h3>
+                            
+                            {valveState === 'CLOSED' && (
+                                <div className="flex items-start gap-2 text-emerald-700 bg-emerald-50/50 p-2.5 rounded-lg border border-emerald-100">
+                                    <div className="mt-0.5 text-xl">🟢</div>
+                                    <div>
+                                        <div className="font-bold text-md">關閉 (Closed)</div>
+                                        <p className="text-xs mt-1 leading-tight text-emerald-600/80">壓力正常。彈簧下壓力大於內部壓力，閥瓣緊壓底座。</p>
+                                    </div>
+                                </div>
+                            )}
 
+                            {valveState === 'SIMMERING' && (
+                                <div className="flex items-start gap-2 text-orange-700 bg-orange-50/50 p-2.5 rounded-lg border border-orange-100">
+                                    <div className="mt-0.5 text-xl">🟡</div>
+                                    <div>
+                                        <div className="font-bold text-md">初噴 / 微啟</div>
+                                        <p className="text-xs mt-1 leading-tight text-orange-600/80">接近設定壓力。閥瓣微幅抬起，小量蒸氣洩漏。</p>
+                                    </div>
+                                </div>
+                            )}
+
+                            {valveState === 'OPEN' && (
+                                <div className="flex items-start gap-2 text-red-700 bg-red-50/50 p-2.5 rounded-lg border border-red-100">
+                                    <div className="mt-0.5 text-xl animate-pulse">🔴</div>
+                                    <div>
+                                        <div className="font-bold text-md">排放 / 起跳</div>
+                                        <p className="text-xs mt-1 leading-tight text-red-600/80">壓力超標全開！降至 {RESEAT_PRESSURE} PSI 以下才會回座。</p>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                     </div>
+
+                    {/* 左下角提示框 */}
+                    <div className="absolute bottom-6 left-6 z-10 bg-slate-900/60 backdrop-blur-sm px-4 py-2 rounded-lg text-xs text-slate-300 font-bold pointer-events-none border border-slate-600/50 shadow-lg">
+                        💡 提示：左鍵拖曳旋轉 / 滾輪縮放
+                    </div>
+
                 </div>
             );
         };
