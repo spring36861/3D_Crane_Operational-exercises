@@ -86,18 +86,21 @@
 
             // --- Three.js 場景初始化與渲染 ---
             useEffect(() => {
-                const width = mountRef.current.clientWidth;
-                const height = mountRef.current.clientHeight;
+                // 確保容器存在才繼續
+                if (!mountRef.current) return;
+
+                const initialWidth = mountRef.current.clientWidth || window.innerWidth / 2;
+                const initialHeight = mountRef.current.clientHeight || 500;
 
                 // 1. 場景與相機
                 const scene = new THREE.Scene();
-                scene.background = new THREE.Color('#1e293b'); // 改為深色背景 (slate-800) 讓蒸氣更明顯
+                scene.background = new THREE.Color('#1e293b'); // 深色背景 (slate-800) 讓蒸氣更明顯
                 
-                const camera = new THREE.PerspectiveCamera(40, width / height, 0.1, 1000);
+                const camera = new THREE.PerspectiveCamera(40, initialWidth / initialHeight, 0.1, 1000);
                 camera.position.set(0, 5, 30);
 
                 const renderer = new THREE.WebGLRenderer({ antialias: true });
-                renderer.setSize(width, height);
+                renderer.setSize(initialWidth, initialHeight);
                 renderer.shadowMap.enabled = true;
                 mountRef.current.appendChild(renderer.domElement);
 
@@ -333,19 +336,32 @@
 
                 animate();
 
-                // 視窗大小改變自適應
+                // 解決初始載入時元素尺寸尚未展開的問題
                 const handleResize = () => {
+                    if (!mountRef.current) return;
                     const w = mountRef.current.clientWidth;
                     const h = mountRef.current.clientHeight;
+                    
+                    // 避免在元素尚未展開前使用無效尺寸
+                    if (w === 0 || h === 0) return;
+                    
                     camera.aspect = w / h;
                     camera.updateProjectionMatrix();
                     renderer.setSize(w, h);
                 };
-                window.addEventListener('resize', handleResize);
+
+                // 使用 ResizeObserver 主動監聽容器尺寸變化，取代原本的 window resize
+                const resizeObserver = new ResizeObserver(() => {
+                    handleResize();
+                });
+                
+                if (mountRef.current) {
+                    resizeObserver.observe(mountRef.current);
+                }
 
                 // Cleanup
                 return () => {
-                    window.removeEventListener('resize', handleResize);
+                    resizeObserver.disconnect();
                     cancelAnimationFrame(animationId);
                     if (mountRef.current && renderer.domElement) {
                         mountRef.current.removeChild(renderer.domElement);
@@ -369,7 +385,7 @@
                             </span>
                         </div>
                         {/* 3D Canvas 掛載點 */}
-                        <div ref={mountRef} class="flex-1 w-full bg-slate-800 cursor-move relative overflow-hidden">
+                        <div ref={mountRef} class="flex-1 w-full h-full bg-slate-800 cursor-move relative overflow-hidden">
                             {/* 覆蓋一層文字提示 */}
                             <div class="absolute bottom-4 left-4 bg-slate-900/70 backdrop-blur-sm px-3 py-2 rounded-lg text-xs text-slate-300 font-bold pointer-events-none border border-slate-700">
                                 💡 提示：左鍵拖曳旋轉 / 滾輪縮放
