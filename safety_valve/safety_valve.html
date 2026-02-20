@@ -18,24 +18,23 @@
     <style>
         input[type=range]::-webkit-slider-thumb {
             -webkit-appearance: none;
-            height: 24px;
-            width: 24px;
+            height: 28px;
+            width: 28px;
             border-radius: 50%;
             background: #3b82f6;
             cursor: pointer;
-            margin-top: -8px;
-            box-shadow: 0 0 5px rgba(0,0,0,0.3);
+            margin-top: -11px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5), inset 0 0 4px rgba(255,255,255,0.4);
             position: relative;
             z-index: 10;
         }
         input[type=range]::-webkit-slider-runnable-track {
             width: 100%;
-            height: 8px;
+            height: 6px;
             cursor: pointer;
-            background: #cbd5e1;
-            border-radius: 4px;
+            background: #475569;
+            border-radius: 3px;
         }
-        /* 隱藏預設捲軸，讓 3D 體驗更好 */
         .no-scrollbar::-webkit-scrollbar {
             display: none;
         }
@@ -45,8 +44,8 @@
         }
     </style>
 </head>
-<body class="bg-slate-900 min-h-screen font-sans text-slate-800 flex items-center justify-center p-4">
-    <div id="root" class="w-full max-w-7xl h-[90vh] min-h-[600px]"></div>
+<body class="bg-slate-900 min-h-screen font-sans text-slate-800 flex items-center justify-center p-0 md:p-4">
+    <div id="root" class="w-full max-w-7xl h-[100dvh] md:h-[90vh] md:min-h-[600px]"></div>
 
     <script type="text/babel">
         const { useState, useEffect, useMemo, useRef } = React;
@@ -80,7 +79,6 @@
             const valveStateRef = useRef(valveState);
             const sceneObjectsRef = useRef({});
 
-            // 同步 React 狀態到 Three.js 渲染迴圈可讀取的 Ref
             useEffect(() => {
                 pressureRef.current = pressure;
                 valveStateRef.current = valveState;
@@ -88,19 +86,20 @@
 
             // --- Three.js 場景初始化與渲染 ---
             useEffect(() => {
-                // 確保容器存在才繼續
                 if (!mountRef.current) return;
 
                 const initialWidth = mountRef.current.clientWidth || window.innerWidth;
                 const initialHeight = mountRef.current.clientHeight || window.innerHeight;
 
-                // 1. 場景與相機
                 const scene = new THREE.Scene();
-                scene.background = new THREE.Color('#0f172a'); // 更深的背景色以突顯 UI 與模型
+                scene.background = new THREE.Color('#0f172a'); // 深色背景色
                 
-                // 將相機稍微往左移一點，讓右側的控制面板不會遮擋到模型主體
+                // 【核心調整】電腦版將相機目標右移，讓模型在畫面上靠左，避開右側面板
+                const isMobileInit = initialWidth < 768;
+                const cameraOffsetX = isMobileInit ? 0 : 5.5;
+
                 const camera = new THREE.PerspectiveCamera(40, initialWidth / initialHeight, 0.1, 1000);
-                camera.position.set(-5, 5, 35); 
+                camera.position.set(cameraOffsetX, 5, 35); 
 
                 const renderer = new THREE.WebGLRenderer({ antialias: true });
                 renderer.setSize(initialWidth, initialHeight);
@@ -108,11 +107,11 @@
                 mountRef.current.appendChild(renderer.domElement);
 
                 const controls = new THREE.OrbitControls(camera, renderer.domElement);
-                controls.target.set(0, 3, 0);
+                controls.target.set(cameraOffsetX, 3, 0); 
                 controls.enableDamping = true;
-                controls.maxPolarAngle = Math.PI / 2 + 0.2; // 限制視角不要跑到地底下太多
+                controls.maxPolarAngle = Math.PI / 2 + 0.2; 
 
-                // 2. 燈光
+                // 燈光
                 const ambientLight = new THREE.AmbientLight(0xffffff, 0.5); 
                 scene.add(ambientLight);
                 
@@ -125,26 +124,22 @@
                 backLight.position.set(-10, 10, -15);
                 scene.add(backLight);
 
-                // --- 3. 建立 3D 模型物件 ---
-
-                // 共用材質
+                // --- 建立 3D 模型物件 ---
                 const metalMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.6, roughness: 0.4 });
                 const darkMetalMat = new THREE.MeshStandardMaterial({ color: 0x475569, metalness: 0.8, roughness: 0.3 });
                 const brassMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b, metalness: 0.8, roughness: 0.2 });
-                // 玻璃閥體材質，讓內部作動清晰可見
                 const glassMat = new THREE.MeshPhysicalMaterial({
                     color: 0xbae6fd, transmission: 0.8, opacity: 1, metalness: 0.1, roughness: 0.1, transparent: true
                 });
 
                 // (A) 壓力容器 (Vessel)
                 const vesselMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8 });
-                sceneObjectsRef.current.vesselMat = vesselMat; // 儲存起來以動態變色
+                sceneObjectsRef.current.vesselMat = vesselMat; 
                 const vesselGeo = new THREE.CylinderGeometry(5, 5, 8, 32);
                 const vessel = new THREE.Mesh(vesselGeo, vesselMat);
                 vessel.position.y = -5;
                 scene.add(vessel);
 
-                // 法蘭盤 (Flange)
                 const flangeGeo = new THREE.CylinderGeometry(3.5, 3.5, 0.5, 32);
                 const flange = new THREE.Mesh(flangeGeo, darkMetalMat);
                 flange.position.y = -1;
@@ -153,7 +148,7 @@
                 // (B) 噴嘴 (Nozzle / Seat)
                 const nozzleGeo = new THREE.CylinderGeometry(1.2, 1.2, 2, 32);
                 const nozzle = new THREE.Mesh(nozzleGeo, darkMetalMat);
-                nozzle.position.y = 0; // 頂部在 y = 1
+                nozzle.position.y = 0; 
                 scene.add(nozzle);
 
                 // (C) 玻璃閥體 (Valve Body)
@@ -162,44 +157,38 @@
                 body.position.y = 3;
                 scene.add(body);
 
-                // 排放出口 (Outlet Pipe)
                 const outletGeo = new THREE.CylinderGeometry(1.2, 1.2, 4, 32);
                 const outlet = new THREE.Mesh(outletGeo, metalMat);
                 outlet.rotation.z = Math.PI / 2;
                 outlet.position.set(4, 3, 0);
                 scene.add(outlet);
 
-                // (D) 活動組件群組 (Moving Parts: 閥瓣、閥桿、彈簧下托盤)
+                // (D) 活動組件群組
                 const movingParts = new THREE.Group();
                 scene.add(movingParts);
                 sceneObjectsRef.current.movingParts = movingParts;
 
-                // 閥瓣 (Disc) - 接觸點在 y = 1.2 (剛好貼齊 Nozzle 頂部)
                 const discGeo = new THREE.CylinderGeometry(1.4, 1.4, 0.4, 32);
                 const disc = new THREE.Mesh(discGeo, brassMat);
                 disc.position.y = 1.2; 
                 movingParts.add(disc);
 
-                // 閥桿 (Stem)
                 const stemGeo = new THREE.CylinderGeometry(0.2, 0.2, 8, 16);
                 const stem = new THREE.Mesh(stemGeo, metalMat);
                 stem.position.y = 5.4;
                 movingParts.add(stem);
 
-                // 彈簧下托盤 (Bottom Spring Plate)
                 const bottomPlateGeo = new THREE.CylinderGeometry(1.5, 1.5, 0.2, 32);
                 const bottomPlate = new THREE.Mesh(bottomPlateGeo, darkMetalMat);
-                bottomPlate.position.y = 6.5; // 彈簧底部起始點
+                bottomPlate.position.y = 6.5; 
                 movingParts.add(bottomPlate);
 
                 // (E) 固定支架結構 (Yoke)
-                // 閥體上蓋
                 const topCoverGeo = new THREE.CylinderGeometry(3.2, 3.2, 0.4, 32);
                 const topCover = new THREE.Mesh(topCoverGeo, darkMetalMat);
                 topCover.position.y = 5.2;
                 scene.add(topCover);
 
-                // 雙側支柱
                 const pillarGeo = new THREE.CylinderGeometry(0.3, 0.3, 5, 16);
                 const pillar1 = new THREE.Mesh(pillarGeo, metalMat);
                 pillar1.position.set(2.2, 7.7, 0);
@@ -208,7 +197,6 @@
                 pillar2.position.set(-2.2, 7.7, 0);
                 scene.add(pillar2);
 
-                // 頂部橫樑與彈簧上托盤
                 const topBeamGeo = new THREE.BoxGeometry(5.5, 0.6, 2);
                 const topBeam = new THREE.Mesh(topBeamGeo, darkMetalMat);
                 topBeam.position.y = 10.2;
@@ -216,10 +204,9 @@
                 
                 const topPlateGeo = new THREE.CylinderGeometry(1.5, 1.5, 0.2, 32);
                 const topPlate = new THREE.Mesh(topPlateGeo, darkMetalMat);
-                topPlate.position.y = 9.8; // 彈簧頂部終點
+                topPlate.position.y = 9.8; 
                 scene.add(topPlate);
 
-                // 頂部調節螺絲 (Adjusting Screw)
                 const screwGeo = new THREE.CylinderGeometry(0.4, 0.4, 1.5, 16);
                 const screw = new THREE.Mesh(screwGeo, brassMat);
                 screw.position.y = 11;
@@ -251,7 +238,7 @@
                     scene.add(springMesh);
                 };
 
-                // (G) 蒸氣粒子系統 (Steam Particles)
+                // (G) 蒸氣粒子系統
                 const particlesGroup = new THREE.Group();
                 scene.add(particlesGroup);
                 const particleData = [];
@@ -267,31 +254,25 @@
                     const currentPressure = pressureRef.current;
                     const currentState = valveStateRef.current;
 
-                    // 1. 處理容器變色 (隨壓力變紅)
                     const ratio = currentPressure / MAX_PRESSURE;
                     const r = Math.min(1, 0.4 + ratio * 0.6);
                     const g = Math.max(0, 0.8 - ratio * 0.8);
                     const b = Math.max(0, 1.0 - ratio * 1.0);
                     vesselMat.color.setRGB(r, g, b);
 
-                    // 2. 處理閥瓣(Disc)位移平滑過渡
                     let targetOffset = 0;
                     if (currentState === 'OPEN') targetOffset = 1.5;
                     if (currentState === 'SIMMERING') targetOffset = 0.15;
                     
-                    // 平滑移動 (Lerp)
                     currentDiscOffset += (targetOffset - currentDiscOffset) * 0.2;
                     movingParts.position.y = currentDiscOffset;
 
-                    // 3. 即時重繪彈簧 (根據托盤位置)
                     const springBottomY = 6.6 + currentDiscOffset;
                     const springTopY = 9.7;
                     updateSpringGeometry(springBottomY, springTopY);
 
-                    // 4. 處理蒸氣粒子發射
                     if (currentState === 'OPEN' || currentState === 'SIMMERING') {
                         const isHeavy = currentState === 'OPEN';
-                        // 每幀發射機率
                         if (Math.random() > (isHeavy ? 0.2 : 0.6)) {
                             const pGeo = new THREE.SphereGeometry(isHeavy ? 0.8 : 0.4, 8, 8);
                             const pMat = new THREE.MeshBasicMaterial({
@@ -299,7 +280,6 @@
                             });
                             const p = new THREE.Mesh(pGeo, pMat);
                             
-                            // 從排放口起點發射
                             p.position.set(5.5, 3 + (Math.random()-0.5)*0.5, (Math.random()-0.5)*0.5);
                             
                             const vx = (isHeavy ? 0.8 : 0.2) + Math.random() * 0.4;
@@ -314,7 +294,6 @@
                         }
                     }
 
-                    // 5. 更新現有粒子狀態
                     for (let i = particleData.length - 1; i >= 0; i--) {
                         const data = particleData[i];
                         data.life++;
@@ -322,7 +301,6 @@
                         data.mesh.position.y += data.vy;
                         data.mesh.position.z += data.vz;
                         
-                        // 模擬蒸氣擴散與消散
                         data.mesh.scale.multiplyScalar(1.04); 
                         data.mesh.material.opacity *= 0.92; 
 
@@ -339,30 +317,32 @@
 
                 animate();
 
-                // 解決初始載入時元素尺寸尚未展開的問題
+                // 響應式調整
                 const handleResize = () => {
                     if (!mountRef.current) return;
                     const w = mountRef.current.clientWidth;
                     const h = mountRef.current.clientHeight;
                     
-                    // 避免在元素尚未展開前使用無效尺寸
                     if (w === 0 || h === 0) return;
                     
+                    const isMobile = w < 768;
+                    const targetOffsetX = isMobile ? 0 : 5.5; // 動態調整攝影機焦點
+                    if (controls.target.x !== targetOffsetX) {
+                        const deltaX = targetOffsetX - controls.target.x;
+                        controls.target.x = targetOffsetX;
+                        camera.position.x += deltaX;
+                    }
+
                     camera.aspect = w / h;
                     camera.updateProjectionMatrix();
                     renderer.setSize(w, h);
                 };
 
-                // 使用 ResizeObserver 主動監聽容器尺寸變化
                 const resizeObserver = new ResizeObserver(() => {
                     handleResize();
                 });
-                
-                if (mountRef.current) {
-                    resizeObserver.observe(mountRef.current);
-                }
+                if (mountRef.current) resizeObserver.observe(mountRef.current);
 
-                // Cleanup
                 return () => {
                     resizeObserver.disconnect();
                     cancelAnimationFrame(animationId);
@@ -373,111 +353,105 @@
             }, []);
 
             return (
-                <div className="relative w-full h-full rounded-2xl shadow-2xl overflow-hidden border border-slate-700 bg-slate-900 flex flex-col">
+                <div className="relative w-full h-full md:rounded-2xl shadow-2xl overflow-hidden border-0 md:border border-slate-700 bg-slate-900 flex flex-col">
                     
-                    {/* 頂部資訊列 (絕對定位覆蓋) */}
-                    <div className="absolute top-0 left-0 right-0 z-20 bg-slate-900/80 backdrop-blur-md text-white py-3 px-6 text-lg font-bold flex justify-between items-center border-b border-slate-700/50">
-                        <span>3D 內部作動透視圖 (可滑鼠拖曳旋轉)</span>
-                        <span className={`px-4 py-1.5 rounded-full text-sm font-bold shadow-lg ${
-                            valveState === 'OPEN' ? 'bg-red-500 text-white' : 
-                            valveState === 'SIMMERING' ? 'bg-yellow-400 text-black' : 'bg-emerald-500 text-white'
-                        }`}>
-                            {valveState === 'OPEN' ? '全開排放中' : 
-                             valveState === 'SIMMERING' ? '初噴微啟' : '完全關閉'}
-                        </span>
+                    {/* 頂部資訊列 */}
+                    <div className="absolute top-0 left-0 right-0 z-20 bg-slate-900/60 backdrop-blur-md text-white py-3 px-4 md:px-6 flex justify-between items-center border-b border-slate-700/50">
+                        <span className="font-bold text-sm md:text-lg truncate">3D 內部作動透視圖</span>
+                        {/* 手機版縮小左上角提示 */}
+                        <div className="text-[10px] md:text-xs text-slate-400">💡 可拖曳旋轉 / 滾輪縮放</div>
                     </div>
 
                     {/* 3D Canvas 背景 */}
                     <div ref={mountRef} className="absolute inset-0 z-0 cursor-move"></div>
 
-                    {/* 浮動控制面板 (融合於畫面上方) */}
-                    <div className="absolute top-20 right-6 z-10 w-[340px] bg-white/95 backdrop-blur-xl p-6 rounded-2xl shadow-2xl border border-white/20">
-                        <h2 className="text-xl font-bold text-slate-800 mb-5 border-b border-slate-200 pb-2 flex items-center gap-2">
-                            ⚙️ 系統壓力控制
-                        </h2>
-                        
-                        <div className="mb-6 relative">
-                            <div className="flex justify-between items-end mb-2">
-                                <label className="text-slate-600 font-semibold">內部壓力 (PSI)</label>
-                                <div className={`text-3xl font-black font-mono transition-colors ${
-                                    pressure >= SET_PRESSURE ? 'text-red-600' : 
-                                    pressure >= SIMMER_PRESSURE ? 'text-orange-500' : 'text-blue-600'
-                                }`}>
-                                    {pressure.toFixed(1)}
-                                </div>
-                            </div>
-                            
-                            <input 
-                                type="range" 
-                                min="0" 
-                                max={MAX_PRESSURE} 
-                                step="0.5" 
-                                value={pressure}
-                                onChange={(e) => setPressure(parseFloat(e.target.value))}
-                                className="w-full h-3 bg-slate-200 rounded-lg appearance-none cursor-pointer"
-                            />
-                            
-                            {/* 刻度標籤 */}
-                            <div className="relative w-full h-8 mt-1 text-[11px] text-slate-500 font-mono">
-                                <span className="absolute left-0 mt-2">0</span>
-                                
-                                <div className="absolute flex flex-col items-center" 
-                                     style={{ left: `${(RESEAT_PRESSURE / MAX_PRESSURE) * 100}%`, transform: 'translateX(-50%)' }}>
-                                    <div className="w-0.5 h-1.5 bg-slate-400 mb-0.5 rounded"></div>
-                                    <span>{RESEAT_PRESSURE}</span>
-                                    <span className="text-[9px] text-slate-400 -mt-1">(回座)</span>
-                                </div>
-                                
-                                <div className="absolute flex flex-col items-center" 
-                                     style={{ left: `${(SET_PRESSURE / MAX_PRESSURE) * 100}%`, transform: 'translateX(-50%)' }}>
-                                    <div className="w-0.5 h-1.5 bg-red-400 mb-0.5 rounded"></div>
-                                    <span className="text-red-500 font-bold">{SET_PRESSURE}</span>
-                                    <span className="text-[9px] text-red-400 -mt-1">(起跳)</span>
-                                </div>
-                                
-                                <span className="absolute right-0 mt-2">{MAX_PRESSURE}</span>
-                            </div>
-                        </div>
-
-                        {/* 狀態說明面板 */}
-                        <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 shadow-inner">
-                            <h3 className="font-bold text-slate-700 mb-2 text-sm">閥門狀態</h3>
+                    {/* --- 【右上角：閥門狀態說明面板】 --- */}
+                    <div className="absolute top-16 right-4 md:top-20 md:right-8 z-10 w-[240px] md:w-[320px]">
+                        <div className="bg-slate-800/85 backdrop-blur-xl p-3 md:p-4 rounded-xl shadow-2xl border border-slate-600/50">
+                            <h3 className="text-slate-400 text-xs md:text-sm font-bold mb-3 border-b border-slate-600/50 pb-1">閥門狀態</h3>
                             
                             {valveState === 'CLOSED' && (
-                                <div className="flex items-start gap-2 text-emerald-700 bg-emerald-50/50 p-2.5 rounded-lg border border-emerald-100">
-                                    <div className="mt-0.5 text-xl">🟢</div>
+                                <div className="flex items-center gap-3">
+                                    <div className="w-4 h-4 rounded-full bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.8)] shrink-0"></div>
                                     <div>
-                                        <div className="font-bold text-md">關閉 (Closed)</div>
-                                        <p className="text-xs mt-1 leading-tight text-emerald-600/80">壓力正常。彈簧下壓力大於內部壓力，閥瓣緊壓底座。</p>
+                                        <div className="font-bold text-emerald-400 text-sm md:text-base">關閉 (Closed)</div>
+                                        <p className="text-[10px] md:text-xs mt-1 text-emerald-100/70 leading-relaxed">壓力正常。彈簧下壓力大於內部壓力，閥門緊閉。</p>
                                     </div>
                                 </div>
                             )}
 
                             {valveState === 'SIMMERING' && (
-                                <div className="flex items-start gap-2 text-orange-700 bg-orange-50/50 p-2.5 rounded-lg border border-orange-100">
-                                    <div className="mt-0.5 text-xl">🟡</div>
+                                <div className="flex items-center gap-3">
+                                    <div className="w-4 h-4 rounded-full bg-orange-400 shadow-[0_0_10px_rgba(251,146,60,0.8)] shrink-0"></div>
                                     <div>
-                                        <div className="font-bold text-md">初噴 / 微啟</div>
-                                        <p className="text-xs mt-1 leading-tight text-orange-600/80">接近設定壓力。閥瓣微幅抬起，小量蒸氣洩漏。</p>
+                                        <div className="font-bold text-orange-400 text-sm md:text-base">初噴 / 微啟</div>
+                                        <p className="text-[10px] md:text-xs mt-1 text-orange-100/70 leading-relaxed">接近設定壓力。閥瓣微幅抬起，小量蒸氣洩漏。</p>
                                     </div>
                                 </div>
                             )}
 
                             {valveState === 'OPEN' && (
-                                <div className="flex items-start gap-2 text-red-700 bg-red-50/50 p-2.5 rounded-lg border border-red-100">
-                                    <div className="mt-0.5 text-xl animate-pulse">🔴</div>
+                                <div className="flex items-center gap-3">
+                                    <div className="w-4 h-4 rounded-full bg-red-500 shadow-[0_0_15px_rgba(239,68,68,1)] animate-pulse shrink-0"></div>
                                     <div>
-                                        <div className="font-bold text-md">排放 / 起跳</div>
-                                        <p className="text-xs mt-1 leading-tight text-red-600/80">壓力超標全開！降至 {RESEAT_PRESSURE} PSI 以下才會回座。</p>
+                                        <div className="font-bold text-red-500 text-sm md:text-base">排放 / 起跳</div>
+                                        <p className="text-[10px] md:text-xs mt-1 text-red-100/80 leading-relaxed">壓力超標！須降至 {RESEAT_PRESSURE} PSI 以下才會回座。</p>
                                     </div>
                                 </div>
                             )}
                         </div>
                     </div>
 
-                    {/* 左下角提示框 */}
-                    <div className="absolute bottom-6 left-6 z-10 bg-slate-900/60 backdrop-blur-sm px-4 py-2 rounded-lg text-xs text-slate-300 font-bold pointer-events-none border border-slate-600/50 shadow-lg">
-                        💡 提示：左鍵拖曳旋轉 / 滾輪縮放
+                    {/* --- 【右下角：系統壓力控制面板】 --- */}
+                    <div className="absolute bottom-6 left-4 right-4 md:bottom-10 md:right-8 md:left-auto md:w-[360px] z-10">
+                        <div className="bg-slate-800/85 backdrop-blur-xl p-5 md:p-6 rounded-2xl shadow-2xl border border-slate-600/50">
+                            
+                            <div className="flex justify-between items-end mb-6">
+                                <label className="text-slate-300 font-bold text-sm md:text-base flex items-center gap-2">
+                                    ⚙️ 系統壓力控制
+                                </label>
+                                <div className={`text-4xl font-black font-mono tracking-tight transition-colors ${
+                                    pressure >= SET_PRESSURE ? 'text-red-400' : 
+                                    pressure >= SIMMER_PRESSURE ? 'text-orange-400' : 'text-blue-400'
+                                }`}>
+                                    {pressure.toFixed(1)}
+                                </div>
+                            </div>
+                            
+                            <div className="relative pt-2 pb-6">
+                                <input 
+                                    type="range" 
+                                    min="0" 
+                                    max={MAX_PRESSURE} 
+                                    step="0.5" 
+                                    value={pressure}
+                                    onChange={(e) => setPressure(parseFloat(e.target.value))}
+                                    className="w-full appearance-none bg-transparent cursor-pointer"
+                                />
+                                
+                                {/* 刻度標籤 */}
+                                <div className="absolute w-full mt-3 text-[10px] md:text-xs text-slate-400 font-mono">
+                                    <span className="absolute left-0">0</span>
+                                    
+                                    <div className="absolute flex flex-col items-center" 
+                                         style={{ left: `${(RESEAT_PRESSURE / MAX_PRESSURE) * 100}%`, transform: 'translateX(-50%)' }}>
+                                        <div className="w-px h-2 bg-slate-400 mb-1"></div>
+                                        <span>{RESEAT_PRESSURE}</span>
+                                        <span className="text-[9px] text-slate-500 -mt-0.5">(回座)</span>
+                                    </div>
+                                    
+                                    <div className="absolute flex flex-col items-center" 
+                                         style={{ left: `${(SET_PRESSURE / MAX_PRESSURE) * 100}%`, transform: 'translateX(-50%)' }}>
+                                        <div className="w-px h-2 bg-red-400 mb-1"></div>
+                                        <span className="text-red-400 font-bold">{SET_PRESSURE}</span>
+                                        <span className="text-[9px] text-red-500/80 -mt-0.5">(起跳)</span>
+                                    </div>
+                                    
+                                    <span className="absolute right-0">{MAX_PRESSURE}</span>
+                                </div>
+                            </div>
+
+                        </div>
                     </div>
 
                 </div>
