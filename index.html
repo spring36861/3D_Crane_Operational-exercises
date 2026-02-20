@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>危險性機械 3D 模擬中心</title>
+    <title>危險性機械 3D 模擬教學中心</title>
     <style>
         :root {
             --primary-blue: #003366;
@@ -24,21 +24,22 @@
         header h1 { margin: 0; letter-spacing: 2px; }
         header p { opacity: 0.9; margin-top: 10px; }
 
-        .main-container { max-width: 1000px; margin: 40px auto; padding: 0 20px; }
+        .main-container { max-width: 1100px; margin: 40px auto; padding: 0 20px; }
 
         /* 3D 模擬卡片區 */
-        .card-group { display: flex; justify-content: center; gap: 25px; flex-wrap: wrap; margin-bottom: 50px; }
+        .card-group { display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; margin-bottom: 50px; }
         .card { 
             background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.1); 
             width: 320px; transition: 0.3s; text-decoration: none; color: #333; border: 1px solid #ddd;
+            display: flex; flex-direction: column;
         }
         .card:hover { transform: translateY(-10px); box-shadow: 0 12px 30px rgba(0,0,0,0.2); border-color: var(--industry-yellow); }
         .card-img { width: 100%; height: 180px; object-fit: cover; background: #eee; }
-        .card-content { padding: 20px; }
+        .card-content { padding: 20px; flex-grow: 1; }
         .card-content h3 { margin: 0 0 10px 0; color: var(--primary-blue); border-left: 4px solid var(--industry-yellow); padding-left: 10px; }
         .card-content p { font-size: 0.9em; color: #666; line-height: 1.6; }
 
-        /* 炫酷職災防治 YouTube 宣傳區 */
+        /* 職災防治 YouTube 宣傳區 */
         .safety-promo {
             background: var(--dark-bg);
             color: #fff;
@@ -103,7 +104,7 @@
 <div class="main-container">
     <div class="card-group">
         <a href="crane/3Df_FixCrane.html" class="card">
-            <img src="crane.png" alt="固定式起重機" class="card-img" onerror="this.src='https://via.placeholder.com/320x180?text=Crane+Image+Missing'">
+            <img src="crane.png" alt="固定式起重機" class="card-img" onerror="this.src='https://via.placeholder.com/320x180?text=Fix+Crane+Image+Missing'">
             <div class="card-content">
                 <h3>固定式起重機模擬</h3>
                 <p>練習固定式起重機減少擺盪及安全操作。</p>
@@ -117,6 +118,14 @@
                 <p>模擬戶外吊掛作業，練習起伏伸縮與荷重物移動之關係。</p>
             </div>
         </a>
+
+        <a href="safety_valve/safety_valve.html" class="card">
+            <img src="safety_valve.png" alt="安全閥構造" class="card-img" onerror="this.src='https://via.placeholder.com/320x180?text=Safety+Valve+Image+Missing'">
+            <div class="card-content">
+                <h3>安全閥構造模擬</h3>
+                <p>深入了解壓力容器關鍵安全組件，剖析內部彈簧、閥座構造與動作原理。</p>
+            </div>
+        </a>
     </div>
 
     <div class="safety-promo">
@@ -124,11 +133,11 @@
         <div class="promo-body">
             <div class="yt-visual">🎬</div>
             <div class="info-text">
-                <h2>中華產業機械設備協會代檢組：職災防治影音頻道</h2>
+                <h2>中機設：職災防治影音頻道</h2>
                 <p>我們將專業的危險性機械檢查知識轉化為淺顯易懂的影音內容。透過真實案例分析與您一起守護作業現場的安全。</p>
                 <div class="button-group">
                     <a href="https://www.youtube.com/@%E4%B8%AD%E6%A9%9F%E8%A8%AD" target="_blank" class="btn btn-yt">🔔 訂閱頻道並開啟小鈴鐺</a>
-                    
+                    <a href="https://www.youtube.com/@%E4%B8%AD%E6%A9%9F%E8%A8%AD/videos" target="_blank" class="btn btn-outline">📹 觀看最新宣導影片</a>
                 </div>
             </div>
         </div>
@@ -141,4 +150,3 @@
 
 </body>
 </html>
-
