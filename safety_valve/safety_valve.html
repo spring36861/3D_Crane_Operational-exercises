@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>壓力容器安全閥演示</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- React & ReactDOM -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        /* 自定義蒸氣動畫特效 */
+        @keyframes blow-heavy {
+            0% { transform: translate(0, 0) scale(0.5); opacity: 0; }
+            10% { opacity: 0.9; }
+            100% { transform: translate(180px, -40px) scale(3); opacity: 0; }
+        }
+        @keyframes blow-light {
+            0% { transform: translate(0, 0) scale(0.3); opacity: 0; }
+            20% { opacity: 0.5; }
+            100% { transform: translate(80px, -10px) scale(1.5); opacity: 0; }
+        }
+        
+        .steam-heavy { animation: blow-heavy 0.8s infinite linear; }
+        .steam-light { animation: blow-light 1.2s infinite linear; }
+        
+        /* 讓不同蒸氣粒子有不同的延遲時間，產生連續噴射感 */
+        .delay-1 { animation-delay: 0.1s; }
+        .delay-2 { animation-delay: 0.2s; }
+        .delay-3 { animation-delay: 0.3s; }
+        .delay-4 { animation-delay: 0.4s; }
+        .delay-5 { animation-delay: 0.5s; }
+        .delay-6 { animation-delay: 0.6s; }
+        .delay-7 { animation-delay: 0.7s; }
+
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 24px;
+            width: 24px;
+            border-radius: 50%;
+            background: #3b82f6;
+            cursor: pointer;
+            margin-top: -8px;
+            box-shadow: 0 0 5px rgba(0,0,0,0.3);
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 8px;
+            cursor: pointer;
+            background: #e2e8f0;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="bg-slate-100 min-h-screen font-sans text-slate-800">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo } = React;
+
+        // --- 安全閥設定常數 ---
+        const MAX_PRESSURE = 120;
+        const SET_PRESSURE = 100;     // 設定壓力 (起跳壓力)
+        const SIMMER_PRESSURE = 95;   // 初噴壓力 (微啟)
+        const RESEAT_PRESSURE = 85;   // 回座壓力 (停噴)
+
+        const App = () => {
+            const [pressure, setPressure] = useState(50);
+            const [valveState, setValveState] = useState('CLOSED'); // 'CLOSED', 'SIMMERING', 'OPEN'
+
+            // 安全閥作動邏輯 (包含遲滯效應 Hysteresis / Blowdown)
+            useEffect(() => {
+                if (valveState === 'CLOSED') {
+                    if (pressure >= SET_PRESSURE) setValveState('OPEN');
+                    else if (pressure >= SIMMER_PRESSURE) setValveState('SIMMERING');
+                } else if (valveState === 'SIMMERING') {
+                    if (pressure >= SET_PRESSURE) setValveState('OPEN');
+                    else if (pressure < SIMMER_PRESSURE) setValveState('CLOSED');
+                } else if (valveState === 'OPEN') {
+                    // 一旦全開，必須等到壓力降至「回座壓力」以下才會關閉
+                    if (pressure <= RESEAT_PRESSURE) setValveState('CLOSED');
+                }
+            }, [pressure, valveState]);
+
+            // 計算閥瓣 (Disc) 位移
+            const discOffset = useMemo(() => {
+                if (valveState === 'OPEN') return -45; // 全開高度
+                if (valveState === 'SIMMERING') return -6; // 微啟高度
+                return 0; // 關閉
+            }, [valveState]);
+
+            // 計算指針角度 (270度視角，從 -135 到 +135)
+            const gaugeAngle = (pressure / MAX_PRESSURE) * 270 - 135;
+
+            // 動態產生彈簧的 SVG Path
+            const generateSpringPath = (offset) => {
+                const startY = 120; // 頂部固定點
+                const endY = 250 + offset; // 底部隨閥瓣移動
+                const coils = 6;
+                const width = 36;
+                const centerX = 250;
+                const step = (endY - startY) / (coils * 2);
+                
+                let d = `M ${centerX} ${startY} `;
+                for(let i=0; i<coils; i++) {
+                    d += `L ${centerX - width/2} ${startY + step * (i*2 + 0.5)} `;
+                    d += `L ${centerX + width/2} ${startY + step * (i*2 + 1.5)} `;
+                }
+                d += `L ${centerX} ${endY}`;
+                return d;
+            };
+
+            // 壓力容器內部顏色 (壓力越高越紅)
+            const vesselColor = useMemo(() => {
+                const ratio = pressure / MAX_PRESSURE;
+                const r = Math.min(255, 100 + ratio * 155);
+                const g = Math.max(0, 200 - ratio * 200);
+                const b = Math.max(0, 250 - ratio * 250);
+                return `rgba(${r}, ${g}, ${b}, 0.6)`;
+            }, [pressure]);
+
+            return (
+                <div class="max-w-6xl mx-auto p-4 md:p-8 flex flex-col lg:flex-row gap-8">
+                    
+                    {/* 左側：SVG 視覺演示區 */}
+                    <div class="flex-1 bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-200 flex flex-col">
+                        <div class="bg-slate-800 text-white py-3 px-6 text-lg font-bold flex justify-between items-center">
+                            <span>安全閥內部作動剖面圖</span>
+                            <span className={`px-3 py-1 rounded-full text-sm font-bold ${
+                                valveState === 'OPEN' ? 'bg-red-500 text-white' : 
+                                valveState === 'SIMMERING' ? 'bg-yellow-400 text-black' : 'bg-emerald-500 text-white'
+                            }`}>
+                                {valveState === 'OPEN' ? '全開排放中' : 
+                                 valveState === 'SIMMERING' ? '初噴微啟' : '完全關閉'}
+                            </span>
+                        </div>
+                        <div class="p-4 flex-1 flex justify-center items-center bg-slate-50">
+                            <svg viewBox="0 0 500 650" className="w-full h-auto max-h-[600px] drop-shadow-md">
+                                <defs>
+                                    <linearGradient id="vesselGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                                        <stop offset="0%" stopColor="#e2e8f0" />
+                                        <stop offset="50%" stopColor="#f8fafc" />
+                                        <stop offset="100%" stopColor="#cbd5e1" />
+                                    </linearGradient>
+                                    <linearGradient id="metalGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                                        <stop offset="0%" stopColor="#94a3b8" />
+                                        <stop offset="50%" stopColor="#cbd5e1" />
+                                        <stop offset="100%" stopColor="#64748b" />
+                                    </linearGradient>
+                                </defs>
+
+                                {/* --- 1. 壓力容器 (Vessel) --- */}
+                                <g id="vessel">
+                                    {/* 內部壓力氣體 */}
+                                    <path d="M50 350 L50 600 A 200 50 0 0 0 450 600 L450 350 Z" fill={vesselColor} style={{transition: 'fill 0.3s'}} />
+                                    {/* 容器外殼 */}
+                                    <path d="M50 650 L50 350 A 200 50 0 0 1 450 350 L450 650" fill="none" stroke="#475569" strokeWidth="8" strokeLinecap="round"/>
+                                    {/* 噴嘴/入口管 (Nozzle) */}
+                                    <rect x="210" y="280" width="80" height="70" fill="url(#metalGrad)" stroke="#334155" strokeWidth="4"/>
+                                    {/* 內部氣體泡泡點綴 */}
+                                    {pressure > 20 && <circle cx="150" cy="450" r="10" fill="#fff" opacity="0.3" />}
+                                    {pressure > 50 && <circle cx="350" cy="500" r="15" fill="#fff" opacity="0.3" />}
+                                    {pressure > 80 && <circle cx="250" cy="400" r="8"  fill="#fff" opacity="0.4" />}
+                                </g>
+
+                                {/* --- 2. 壓力表 (Pressure Gauge) --- */}
+                                <g id="gauge" transform="translate(100, 480)">
+                                    <circle cx="0" cy="0" r="45" fill="#fff" stroke="#334155" strokeWidth="6"/>
+                                    <circle cx="0" cy="0" r="38" fill="#f8fafc" />
+                                    {/* 刻度 */}
+                                    <path d="M -25 25 A 35 35 0 1 1 25 25" fill="none" stroke="#94a3b8" strokeWidth="4" strokeDasharray="4 8"/>
+                                    {/* 紅色危險區間刻度 */}
+                                    <path d="M 15 -32 A 35 35 0 0 1 25 25" fill="none" stroke="#ef4444" strokeWidth="4"/>
+                                    {/* 指針 */}
+                                    <g style={{ transform: `rotate(${gaugeAngle}deg)`, transition: 'transform 0.3s cubic-bezier(0.4, 2.5, 0.4, 0.9)' }}>
+                                        <line x1="0" y1="5" x2="0" y2="-30" stroke="#ef4444" strokeWidth="4" strokeLinecap="round"/>
+                                        <circle cx="0" cy="0" r="5" fill="#1e293b"/>
+                                    </g>
+                                    <text x="0" y="15" textAnchor="middle" fontSize="10" fill="#475569" fontWeight="bold">PSI</text>
+                                </g>
+
+                                {/* --- 3. 閥體 (Valve Body) --- */}
+                                <g id="valve-body">
+                                    {/* 閥體外殼 */}
+                                    <path d="M170 100 L330 100 L330 280 L170 280 Z" fill="url(#metalGrad)" stroke="#334155" strokeWidth="4" />
+                                    {/* 排放出口 (Outlet) */}
+                                    <rect x="330" y="160" width="90" height="70" fill="url(#metalGrad)" stroke="#334155" strokeWidth="4" />
+                                    {/* 蓋掉出口與閥體交界的線 */}
+                                    <line x1="330" y1="162" x2="330" y2="228" stroke="url(#metalGrad)" strokeWidth="6" />
+                                </g>
+
+                                {/* --- 4. 閥座 (Seat) --- */}
+                                <rect x="200" y="270" width="100" height="10" fill="#475569" />
+
+                                {/* --- 5. 移動組件: 閥瓣 (Disc) 與 閥桿 (Stem) --- */}
+                                <g style={{ transform: `translateY(${discOffset}px)`, transition: 'transform 0.15s ease-out' }}>
+                                    {/* 閥桿 */}
+                                    <rect x="242" y="120" width="16" height="150" fill="#cbd5e1" stroke="#334155" strokeWidth="2"/>
+                                    {/* 閥瓣 (Disc) - 接觸面 */}
+                                    <path d="M 195 270 L 305 270 L 290 250 L 210 250 Z" fill="#f59e0b" stroke="#b45309" strokeWidth="3"/>
+                                    {/* 導向套 / 閥瓣座 */}
+                                    <rect x="210" y="240" width="80" height="10" fill="#64748b" stroke="#334155" strokeWidth="2"/>
+                                </g>
+
+                                {/* --- 6. 彈簧 (Spring) --- */}
+                                <path d={generateSpringPath(discOffset)} fill="none" stroke="#0f172a" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round" 
+                                      style={{ transition: 'd 0.15s ease-out' }}/>
+
+                                {/* --- 7. 頂部調節螺絲 (Adjusting Screw) --- */}
+                                <rect x="220" y="80" width="60" height="20" fill="#64748b" stroke="#1e293b" strokeWidth="4"/>
+                                <rect x="235" y="50" width="30" height="30" fill="#94a3b8" stroke="#1e293b" strokeWidth="4"/>
+                                <rect x="240" y="30" width="20" height="20" fill="#cbd5e1" stroke="#1e293b" strokeWidth="4"/>
+
+                                {/* --- 8. 蒸氣排放動畫 (Steam Effects) --- */}
+                                <g id="steam-effects" transform="translate(420, 195)">
+                                    {valveState === 'OPEN' && (
+                                        <>
+                                            <circle cx="0" cy="0" r="15" fill="#94a3b8" className="steam-heavy delay-1" />
+                                            <circle cx="0" cy="10" r="12" fill="#cbd5e1" className="steam-heavy delay-2" />
+                                            <circle cx="0" cy="-5" r="20" fill="#e2e8f0" className="steam-heavy delay-3" />
+                                            <circle cx="0" cy="5" r="16" fill="#f8fafc" className="steam-heavy delay-4" />
+                                            <circle cx="0" cy="-10" r="14" fill="#cbd5e1" className="steam-heavy delay-5" />
+                                            <circle cx="0" cy="15" r="18" fill="#94a3b8" className="steam-heavy delay-6" />
+                                            <circle cx="0" cy="0" r="22" fill="#e2e8f0" className="steam-heavy delay-7" />
+                                        </>
+                                    )}
+                                    {valveState === 'SIMMERING' && (
+                                        <>
+                                            <circle cx="0" cy="0" r="8" fill="#cbd5e1" className="steam-light delay-1" />
+                                            <circle cx="0" cy="10" r="6" fill="#e2e8f0" className="steam-light delay-3" />
+                                            <circle cx="0" cy="-5" r="7" fill="#f8fafc" className="steam-light delay-5" />
+                                        </>
+                                    )}
+                                </g>
+
+                            </svg>
+                        </div>
+                    </div>
+
+                    {/* 右側：控制面板與解說 */}
+                    <div class="flex-1 flex flex-col gap-6">
+                        
+                        {/* 儀表板卡片 */}
+                        <div class="bg-white p-6 rounded-2xl shadow-lg border border-slate-200">
+                            <h2 class="text-2xl font-bold text-slate-800 mb-6 border-b pb-2 flex items-center gap-2">
+                                ⚙️ 手動控制面板
+                            </h2>
+                            
+                            <div class="mb-8">
+                                <div class="flex justify-between items-end mb-2">
+                                    <label class="text-slate-600 font-semibold text-lg">系統壓力 (System Pressure)</label>
+                                    <div class={`text-4xl font-black font-mono transition-colors ${
+                                        pressure >= SET_PRESSURE ? 'text-red-600' : 
+                                        pressure >= SIMMER_PRESSURE ? 'text-orange-500' : 'text-blue-600'
+                                    }`}>
+                                        {pressure.toFixed(1)} <span class="text-lg text-slate-500">PSI</span>
+                                    </div>
+                                </div>
+                                <input 
+                                    type="range" 
+                                    min="0" 
+                                    max={MAX_PRESSURE} 
+                                    step="0.5" 
+                                    value={pressure}
+                                    onChange={(e) => setPressure(parseFloat(e.target.value))}
+                                    class="w-full h-4 bg-slate-200 rounded-lg appearance-none cursor-pointer"
+                                />
+                                <div class="flex justify-between text-xs text-slate-400 mt-2 font-mono">
+                                    <span>0</span>
+                                    <span>{RESEAT_PRESSURE} (回座)</span>
+                                    <span>{SET_PRESSURE} (起跳)</span>
+                                    <span>{MAX_PRESSURE}</span>
+                                </div>
+                            </div>
+
+                            <div class="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                                <h3 class="font-bold text-slate-700 mb-3">當前安全閥狀態</h3>
+                                
+                                {valveState === 'CLOSED' && (
+                                    <div class="flex items-start gap-3 text-emerald-700 bg-emerald-50 p-3 rounded-lg border border-emerald-200">
+                                        <div class="mt-1 text-2xl">🟢</div>
+                                        <div>
+                                            <div class="font-bold text-lg">關閉 (Closed)</div>
+                                            <p class="text-sm mt-1">系統壓力正常。彈簧的下壓力量大於容器內部向上的介質壓力，閥瓣緊壓在閥座上，保持密封。</p>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {valveState === 'SIMMERING' && (
+                                    <div class="flex items-start gap-3 text-orange-700 bg-orange-50 p-3 rounded-lg border border-orange-200">
+                                        <div class="mt-1 text-2xl">🟡</div>
+                                        <div>
+                                            <div class="font-bold text-lg">初噴 / 微啟 (Simmering)</div>
+                                            <p class="text-sm mt-1">壓力接近設定值 ({SIMMER_PRESSURE}~{SET_PRESSURE} PSI)。向上壓力幾乎抵銷彈簧力，閥瓣微幅抬起，小量氣體洩漏並發出嘶嘶聲。</p>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {valveState === 'OPEN' && (
+                                    <div class="flex items-start gap-3 text-red-700 bg-red-50 p-3 rounded-lg border border-red-200">
+                                        <div class="mt-1 text-2xl animate-pulse">🔴</div>
+                                        <div>
+                                            <div class="font-bold text-lg">排放 / 起跳 (Popping/Blowing)</div>
+                                            <p class="text-sm mt-1">壓力達到或超過設定壓力 ({SET_PRESSURE} PSI)！閥門瞬間全開，大量介質高速排出以保護容器。<b>注意：必須等壓力降至 {RESEAT_PRESSURE} PSI 以下才會重新關閉。</b></p>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* 教學說明卡片 */}
+                        <div class="bg-white p-6 rounded-2xl shadow-lg border border-slate-200 flex-1">
+                            <h2 class="text-xl font-bold text-slate-800 mb-4 border-b pb-2">📖 作動原理與參數設定</h2>
+                            <ul class="space-y-4 text-slate-600 text-sm leading-relaxed">
+                                <li class="flex gap-2">
+                                    <span class="font-bold min-w-max text-slate-800">設定壓力 (Set Pressure)：</span>
+                                    <span>目前設定為 <b class="text-red-600">{SET_PRESSURE} PSI</b>。當系統達到此壓力時，閥門會「起跳」完全打開。可透過頂部螺絲調整彈簧預壓來改變此值。</span>
+                                </li>
+                                <li class="flex gap-2">
+                                    <span class="font-bold min-w-max text-slate-800">回座壓力 (Reseat Pressure)：</span>
+                                    <span>目前設定為 <b class="text-blue-600">{RESEAT_PRESSURE} PSI</b>。閥門開啟後，由於氣體動力學(反衝盤作用)，必須將壓力降至低於設定壓力一段距離後，閥門才能重新關閉。</span>
+                                </li>
+                                <li class="flex gap-2">
+                                    <span class="font-bold min-w-max text-slate-800">啟閉壓差 (Blowdown)：</span>
+                                    <span>設定壓力與回座壓力的差值 ({SET_PRESSURE} - {RESEAT_PRESSURE} = 15 PSI)。這是一種設計上的「遲滯效應」，能防止閥門在設定點附近頻繁開關（震顫/Chattering）導致損壞。</span>
+                                </li>
+                            </ul>
+                            
+                            <div class="mt-6 p-4 bg-blue-50 text-blue-800 rounded-lg text-sm border border-blue-100">
+                                <b>💡 互動提示：</b><br/>
+                                慢慢將拉桿向右拉，觀察閥門在 {SIMMER_PRESSURE} PSI 時的「初噴」以及 {SET_PRESSURE} PSI 時的瞬間「起跳全開」。接著將拉桿往左拉，你會發現即使低於 100 PSI 閥門依然保持開啟，直到降破 {RESEAT_PRESSURE} PSI 才會「回座」關閉。
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
