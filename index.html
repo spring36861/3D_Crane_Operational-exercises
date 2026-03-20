@@ -10,6 +10,7 @@
             --industry-yellow: #ffc107;
             --safety-red: #d9534f;
             --dark-bg: #1a1a1a;
+            --fb-blue: #1877F2;
         }
         body { font-family: "Microsoft JhengHei", sans-serif; background-color: #f0f2f5; margin: 0; padding: 0; }
         
@@ -39,7 +40,7 @@
         .card-content h3 { margin: 0 0 10px 0; color: var(--primary-blue); border-left: 4px solid var(--industry-yellow); padding-left: 10px; }
         .card-content p { font-size: 0.9em; color: #666; line-height: 1.6; }
 
-        /* 職災防治 YouTube 宣傳區 */
+        /* 職災防治 YouTube & FB 宣傳區 */
         .safety-promo {
             background: var(--dark-bg);
             color: #fff;
@@ -81,13 +82,19 @@
         .info-text h2 { color: var(--industry-yellow); margin: 0; font-size: 1.5em; }
         .info-text p { color: #ccc; line-height: 1.5; margin: 10px 0; }
         
-        .button-group { display: flex; gap: 15px; margin-top: 20px; }
+        .button-group { display: flex; gap: 15px; margin-top: 20px; flex-wrap: wrap; }
         .btn { 
             padding: 12px 24px; border-radius: 50px; text-decoration: none; font-weight: bold; 
-            transition: 0.3s; text-align: center; flex: 1;
+            transition: 0.3s; text-align: center; flex: 1; min-width: 200px;
+            display: inline-block;
         }
         .btn-yt { background: #ff0000; color: white; border: none; }
         .btn-yt:hover { background: #cc0000; transform: scale(1.05); }
+        
+        /* 新增的 FB 按鈕樣式 */
+        .btn-fb { background: var(--fb-blue); color: white; border: none; }
+        .btn-fb:hover { background: #166fe5; transform: scale(1.05); }
+
         .btn-outline { background: transparent; color: white; border: 2px solid white; }
         .btn-outline:hover { background: white; color: #000; }
 
@@ -103,6 +110,7 @@
 
 <div class="main-container">
     <div class="card-group">
+        <!-- 固定式起重機 -->
         <a href="crane/3Df_FixCrane.html" class="card">
             <img src="crane.png.png" alt="固定式起重機" class="card-img" onerror="this.src='https://via.placeholder.com/320x180?text=Fix+Crane+Image+Missing'">
             <div class="card-content">
@@ -111,6 +119,7 @@
             </div>
         </a>
 
+        <!-- 移動式起重機 -->
         <a href="mobile_crane/3DCrane_mobile.html" class="card">
             <img src="mobile_place.jpg.png" alt="移動式起重機" class="card-img" onerror="this.src='https://via.placeholder.com/320x180?text=Mobile+Crane+Image+Missing'">
             <div class="card-content">
@@ -119,11 +128,21 @@
             </div>
         </a>
 
+        <!-- 安全閥構造 -->
         <a href="safety_valve/safety_valve.html" class="card">
             <img src="safety_valve.png" alt="安全閥構造" class="card-img" onerror="this.src='https://via.placeholder.com/320x180?text=Safety+Valve+Image+Missing'">
             <div class="card-content">
                 <h3>安全閥構造模擬</h3>
                 <p>深入了解壓力容器關鍵安全組件，剖析內部彈簧、閥座構造與動作原理。</p>
+            </div>
+        </a>
+
+        <!-- 新增：升降機安全裝置 -->
+        <a href="elevator safety device/elevator safety device.html" class="card">
+            <img src="elevator safety device.png" alt="升降機安全裝置" class="card-img" onerror="this.src='https://via.placeholder.com/320x180?text=Elevator+Safety+Device'">
+            <div class="card-content">
+                <h3>升降機安全裝置模擬</h3>
+                <p>探索升降機與施工架安全機構運作，包含調速機、離心塊與齒輪嚙合之防墜機制。</p>
             </div>
         </a>
     </div>
@@ -133,11 +152,12 @@
         <div class="promo-body">
             <div class="yt-visual">🎬</div>
             <div class="info-text">
-                <h2>中機設：職災防治影音頻道</h2>
-                <p>我們將專業的危險性機械檢查知識轉化為淺顯易懂的影音內容。透過真實案例分析與您一起守護作業現場的安全。</p>
+                <h2>中機設：職災防治影音與社群頻道</h2>
+                <p>我們將專業的危險性機械檢查知識轉化為淺顯易懂的影音與社群內容。透過真實案例分析與您一起守護作業現場的安全。</p>
                 <div class="button-group">
                     <a href="https://www.youtube.com/@%E4%B8%AD%E6%A9%9F%E8%A8%AD" target="_blank" class="btn btn-yt">🔔 訂閱頻道並開啟小鈴鐺</a>
-                    <a href="https://www.youtube.com/@%E4%B8%AD%E6%A9%9F%E8%A8%AD/videos" target="_blank" class="btn btn-outline">📹 觀看最新宣導影片</a>
+                    <!-- 新增的 FB 粉絲專頁按鈕 -->
+                    <a href="https://www.facebook.com/profile.php?id=100083635297077" target="_blank" class="btn btn-fb">📘 追蹤 FB 粉絲專頁</a>
                 </div>
             </div>
         </div>
@@ -150,6 +170,3 @@
 
 </body>
 </html>
-
-
-
