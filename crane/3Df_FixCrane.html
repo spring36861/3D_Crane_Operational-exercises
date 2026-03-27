@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>3D 起重機吊掛練習器 - 競速版</title>
+    <title>3D 起重機吊掛練習器</title>
     
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
@@ -14,7 +14,7 @@
     <style>
         body { margin: 0; overflow: hidden; background-color: #0f172a; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; touch-action: none; }
         #canvas-container { width: 100%; height: 100vh; display: block; position: absolute; top: 0; left: 0; z-index: 1; }
-        /* 確保畫布可以接收指標事件 */
+        /* 確保畫布可以接收指標事件，且阻擋瀏覽器預設的雙指縮放網頁行為 */
         canvas { touch-action: none; }
         .noselect { user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
 
@@ -398,44 +398,95 @@
             }
         }
 
-        // --- 新增：視角滑動控制 (球座標系統) ---
-        let isDragging = false;
-        let previousPointerPosition = { x: 0, y: 0 };
-        
-        // 設定初始視角：半徑 25，仰角約 78 度 (接近平視)，水平角 0 (從南向北看)
+        // --- 新增：視角控制 (球座標系統 + 多點觸控支援) ---
+        // 設定初始視角：半徑 25，仰角約 78 度 (接近平視)，水平角 0
         const camSpherical = new THREE.Spherical(25, Math.PI / 2 - 0.2, 0);
+        
+        // 追蹤觸控點狀態
+        const activePointers = {};
+        let previousPointerPos = { x: 0, y: 0 };
+        let previousPinchDist = -1;
 
-        // 綁定畫布的滑動事件 (Pointer Events 支援滑鼠與觸控)
-        renderer.domElement.addEventListener('pointerdown', (e) => {
-            isDragging = true;
-            previousPointerPosition = { x: e.clientX, y: e.clientY };
-        });
+        const pointerDownHandler = (e) => {
+            activePointers[e.pointerId] = { x: e.clientX, y: e.clientY };
+            // 如果是單指剛按下去，記錄初始位置
+            if (Object.keys(activePointers).length === 1) {
+                previousPointerPos = { x: e.clientX, y: e.clientY };
+            }
+        };
 
-        renderer.domElement.addEventListener('pointermove', (e) => {
-            if (!isDragging) return;
+        const pointerMoveHandler = (e) => {
+            if (!activePointers[e.pointerId]) return;
 
-            const deltaMove = {
-                x: e.clientX - previousPointerPosition.x,
-                y: e.clientY - previousPointerPosition.y
-            };
+            // 更新當前觸控點的位置
+            activePointers[e.pointerId] = { x: e.clientX, y: e.clientY };
+            
+            const keys = Object.keys(activePointers);
 
-            const rotateSpeed = 0.005; // 視角旋轉靈敏度
+            if (keys.length === 1) {
+                // --- 單指：旋轉視角 ---
+                const deltaX = e.clientX - previousPointerPos.x;
+                const deltaY = e.clientY - previousPointerPos.y;
 
-            // 水平滑動改變方位角 (theta)
-            camSpherical.theta -= deltaMove.x * rotateSpeed;
-            // 垂直滑動改變仰角 (phi)
-            camSpherical.phi -= deltaMove.y * rotateSpeed;
+                camSpherical.theta -= deltaX * 0.005; // 水平旋轉
+                camSpherical.phi -= deltaY * 0.005;   // 垂直旋轉
+                // 限制仰角避免穿模或翻轉
+                camSpherical.phi = THREE.MathUtils.clamp(camSpherical.phi, 0.1, Math.PI / 2 - 0.05);
 
-            // 限制仰角，避免鑽入地底 (大於 90度/PI/2)，也避免完全垂直看下去 (設為 0.1)
-            camSpherical.phi = THREE.MathUtils.clamp(camSpherical.phi, 0.1, Math.PI / 2 - 0.05);
+                previousPointerPos = { x: e.clientX, y: e.clientY };
+                previousPinchDist = -1; // 重置雙指距離
+                
+            } else if (keys.length === 2) {
+                // --- 雙指：縮放視角 ---
+                const p1 = activePointers[keys[0]];
+                const p2 = activePointers[keys[1]];
+                
+                // 計算兩指之間的距離
+                const dist = Math.hypot(p1.x - p2.x, p1.y - p2.y);
 
-            previousPointerPosition = { x: e.clientX, y: e.clientY };
-        });
+                if (previousPinchDist > 0) {
+                    const deltaDist = dist - previousPinchDist;
+                    const zoomSpeed = 0.05; // 縮放靈敏度
+                    
+                    camSpherical.radius -= deltaDist * zoomSpeed;
+                    // 限制最近與最遠的距離 (10 ~ 80)
+                    camSpherical.radius = THREE.MathUtils.clamp(camSpherical.radius, 10, 80);
+                }
+                previousPinchDist = dist;
+                
+                // 更新單指紀錄，防止放開一指時畫面跳動
+                previousPointerPos = { x: e.clientX, y: e.clientY }; 
+            }
+        };
 
-        window.addEventListener('pointerup', () => {
-            isDragging = false;
-        });
-        // ----------------------------------------
+        const pointerUpHandler = (e) => {
+            delete activePointers[e.pointerId];
+            
+            const keys = Object.keys(activePointers);
+            if (keys.length < 2) {
+                previousPinchDist = -1;
+            }
+            // 雙指變單指時，無縫接軌單指的起始座標
+            if (keys.length === 1) {
+                previousPointerPos = { x: activePointers[keys[0]].x, y: activePointers[keys[0]].y };
+            }
+        };
+
+        // 綁定觸控與滑鼠拖曳事件
+        const canvasEl = renderer.domElement;
+        canvasEl.addEventListener('pointerdown', pointerDownHandler);
+        canvasEl.addEventListener('pointermove', pointerMoveHandler);
+        canvasEl.addEventListener('pointerup', pointerUpHandler);
+        canvasEl.addEventListener('pointercancel', pointerUpHandler);
+        canvasEl.addEventListener('pointerleave', pointerUpHandler);
+
+        // 額外支援：電腦滑鼠滾輪縮放
+        canvasEl.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            camSpherical.radius += e.deltaY * 0.05; // 滾輪靈敏度
+            camSpherical.radius = THREE.MathUtils.clamp(camSpherical.radius, 10, 80);
+        }, { passive: false });
+        // -----------------------------------------------------------
 
         function animate() {
             requestAnimationFrame(animate);
@@ -511,17 +562,13 @@
             shadowMarker.position.x = payloadPos.x;
             shadowMarker.position.z = payloadPos.z;
 
-            // --- 視角控制 (模擬人員站立視角 + 環繞滑動) ---
-            // 1. 將球座標轉換回直角座標 (Vector3)，得到目前的相機偏移量
+            // --- 視角控制 (球座標計算 + 永遠平滑跟隨) ---
             const currentCamOffset = new THREE.Vector3().setFromSpherical(camSpherical);
-            
-            // 2. 目標相機位置 = 貨物目前位置 + 偏移量
             const targetCamPos = payloadPos.clone().add(currentCamOffset);
             
-            // 3. 確保相機不低於人員站立高度 (1.7m)
+            // 確保相機不低於人員站立高度
             if(targetCamPos.y < 1.7) targetCamPos.y = 1.7;
 
-            // 4. 讓相機平滑移動到目標位置，並永遠注視著貨物
             camera.position.lerp(targetCamPos, 0.1);
             camera.lookAt(payloadPos.x, payloadPos.y + 1, payloadPos.z);
 
