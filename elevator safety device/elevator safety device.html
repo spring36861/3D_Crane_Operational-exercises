@@ -3,15 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>營建用升降機防墜安全器 3D 演示</title>
+    <title>防墜安全器 3D 演示</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <style>
-        body { margin: 0; overflow: hidden; background-color: #1a1a1a; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        #canvas-container { width: 100vw; height: 100vh; }
+        body { margin: 0; overflow: hidden; background-color: #0f172a; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        #canvas-container { width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; z-index: 1; }
         
-        /* 自定義滑桿樣式 */
         input[type=range] {
             -webkit-appearance: none;
             width: 100%;
@@ -19,23 +18,22 @@
         }
         input[type=range]::-webkit-slider-thumb {
             -webkit-appearance: none;
-            height: 16px;
-            width: 16px;
+            height: 18px;
+            width: 18px;
             border-radius: 50%;
-            background: #3b82f6;
+            background: #a855f7; 
             cursor: pointer;
-            margin-top: -6px;
+            margin-top: -7px;
+            box-shadow: 0 0 10px rgba(168,85,247,0.5);
         }
         input[type=range]::-webkit-slider-runnable-track {
             width: 100%;
             height: 4px;
             cursor: pointer;
-            background: #4b5563;
+            background: #374151;
             border-radius: 2px;
         }
-        input[type=range]:focus {
-            outline: none;
-        }
+        input[type=range]:focus { outline: none; }
     </style>
 </head>
 <body>
@@ -43,67 +41,62 @@
     <!-- 3D 畫布 -->
     <div id="canvas-container"></div>
 
-    <!-- 控制面板 UI (響應式設計：手機置底、電腦左上) -->
-    <div class="absolute bottom-0 left-0 w-full sm:top-4 sm:bottom-auto sm:left-4 sm:w-80 bg-gray-900/95 text-white p-4 sm:p-5 sm:rounded-xl rounded-t-2xl shadow-[0_-10px_40px_rgba(0,0,0,0.5)] sm:shadow-2xl backdrop-blur-md border-t sm:border border-gray-700 select-none max-h-[45vh] sm:max-h-none overflow-y-auto z-10">
-        <h1 class="text-lg sm:text-xl font-bold mb-3 text-blue-400 border-b border-gray-700 pb-2 flex justify-between items-center">
-            <span>防墜器 3D 演示</span>
-            <span id="status-badge" class="px-2 py-1 rounded text-xs font-bold bg-green-500/20 text-green-400 border border-green-500/50">🟢 正常</span>
-        </h1>
+    <!-- UI 容器 (設定 pointer-events-none 避免遮擋 3D 畫布拖曳) -->
+    <div class="absolute inset-0 z-10 pointer-events-none flex flex-col justify-end sm:justify-start">
         
-        <!-- 狀態顯示 -->
-        <div class="mb-4 bg-gray-800 p-3 rounded-lg border border-gray-600 flex justify-between items-center">
-            <span class="text-sm text-gray-400">當前馬達轉速</span>
-            <span class="text-2xl font-mono text-white"><span id="current-rpm-display">0</span><span class="text-lg ml-1 text-gray-400">%</span></span>
-        </div>
+        <!-- 實際控制面板 (設定 pointer-events-auto 讓按鈕可點擊) -->
+        <div class="w-full sm:w-[24rem] sm:mt-4 sm:ml-4 bg-slate-900/90 text-white p-4 sm:p-5 sm:rounded-xl rounded-t-2xl shadow-2xl backdrop-blur-md border-t sm:border border-slate-700 select-none pointer-events-auto max-h-[50vh] sm:max-h-none overflow-y-auto">
+            
+            <h1 class="text-lg sm:text-xl font-bold mb-3 text-purple-400 border-b border-slate-700 pb-2 flex justify-between items-center">
+                <span>防墜安全器 3D 演示</span>
+                <span id="status-badge" class="px-2 py-1 rounded text-xs font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/50">🟢 正常運轉</span>
+            </h1>
+            
+            <!-- 狀態顯示 -->
+            <div class="mb-4 bg-slate-800 p-3 rounded-lg border border-slate-600 flex justify-between items-center">
+                <span class="text-sm text-slate-300">主軸轉速 (順時針)</span>
+                <span class="text-2xl font-mono text-white"><span id="current-rpm-display">0</span><span class="text-lg ml-1 text-slate-400">%</span></span>
+            </div>
 
-        <!-- 控制滑桿 -->
-        <div class="space-y-4 mb-4">
-            <div>
-                <div class="flex justify-between mb-1">
-                    <label class="text-sm text-gray-300">驅動轉速 (油門)</label>
-                    <span class="text-sm font-mono text-blue-400"><span id="target-rpm-val">0</span>%</span>
-                </div>
-                <input type="range" id="target-rpm" min="0" max="120" value="0" class="w-full">
-                <div class="flex justify-between text-[10px] text-gray-500 mt-1 px-1">
-                    <span>0%</span>
-                    <span class="text-yellow-500/80 font-bold">觸發點 100%</span>
-                    <span class="text-red-500/80">120%</span>
+            <!-- 控制滑桿 -->
+            <div class="space-y-4 mb-4">
+                <div>
+                    <div class="flex justify-between mb-1">
+                        <label class="text-sm text-slate-300">驅動轉速 (油門)</label>
+                        <span class="text-sm font-mono text-purple-400"><span id="target-rpm-val">0</span>%</span>
+                    </div>
+                    <input type="range" id="target-rpm" min="0" max="120" value="0" class="w-full">
+                    <div class="flex justify-between text-[10px] text-slate-500 mt-1 px-1">
+                        <span>0%</span>
+                        <span class="text-amber-500/80 font-bold">觸發點 100%</span>
+                        <span class="text-red-500/80">120%</span>
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <!-- 視角切換與復位按鈕 -->
-        <div class="grid grid-cols-2 gap-2 mb-2 sm:mb-3">
-            <button id="btn-casing" class="py-2 bg-gray-700 hover:bg-gray-600 text-xs text-white rounded transition-colors font-medium">
-                👁️ 隱藏外殼
-            </button>
-            <button id="btn-cutaway" class="py-2 bg-blue-600 hover:bg-blue-500 text-xs text-white rounded transition-colors font-medium">
-                🔪 恢復完整錐面
-            </button>
-            <button id="btn-reset" class="col-span-2 py-2 bg-gray-700 hover:bg-gray-600 active:bg-gray-800 text-white rounded transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed">
-                ⚙️ 系統復位 (Reset)
-            </button>
-        </div>
-
-        <div class="text-[10px] sm:text-xs text-gray-400 leading-relaxed hidden sm:block mt-2">
-            <p><strong>原理：</strong>飛塊為單向棘輪結構。超速甩出後咬死內圈齒，驅動有內螺紋的銀色錐形鼓，沿著中心螺紋軸旋轉並「向上」爬升，最終卡死在錐形來令片中。</p>
+            <div class="grid grid-cols-2 gap-2 mb-2">
+                <button id="btn-casing" class="py-2 bg-slate-700 hover:bg-slate-600 text-xs text-white rounded transition-colors font-medium">
+                    👁️ 隱藏橘色外殼
+                </button>
+                <button id="btn-cutaway" class="py-2 bg-red-600 hover:bg-red-500 text-xs text-white rounded transition-colors font-medium">
+                    🔪 完整剎車片
+                </button>
+                <button id="btn-reset" class="col-span-2 py-2 bg-slate-700 hover:bg-slate-600 active:bg-slate-800 text-white rounded transition-colors font-semibold disabled:opacity-50">
+                    ⚙️ 系統復位 (Reset)
+                </button>
+            </div>
         </div>
     </div>
 
     <script>
-        // === 系統狀態與變數 ===
-        const STATE = {
-            NORMAL: 0,
-            TRIGGERED: 1, // 剛觸發，開始煞車
-            LOCKED: 2     // 完全煞停
-        };
-        
+        // === 系統狀態 ===
+        const STATE = { NORMAL: 0, TRIGGERED: 1, LOCKED: 2 };
         let currentState = STATE.NORMAL;
-        let currentSpeed = 0; // 實際轉速 (%)
-        let targetSpeed = 0;  // 用戶設定目標轉速 (%)
-        const tripSpeed = 100; // 固定觸發閾值 100%
+        let currentSpeed = 0; 
+        let targetSpeed = 0;  
+        const tripSpeed = 100; 
 
-        // DOM 元素
+        // DOM
         const elTargetRpm = document.getElementById('target-rpm');
         const elTargetRpmVal = document.getElementById('target-rpm-val');
         const elCurrentRpmDisplay = document.getElementById('current-rpm-display');
@@ -115,269 +108,269 @@
         // === Three.js 初始化 ===
         const container = document.getElementById('canvas-container');
         const scene = new THREE.Scene();
-        scene.fog = new THREE.Fog(0x1a1a1a, 10, 50);
+        scene.fog = new THREE.Fog(0x0f172a, 15, 60); // 配合深色 Tailwind 背景
 
         const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.set(0, 9, 18); 
+        // 拉遠並調高攝影機，適應手機與桌面版
+        camera.position.set(0, 10, 18); 
 
         const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // 性能優化
         renderer.shadowMap.enabled = true;
         container.appendChild(renderer.domElement);
 
         const controls = new THREE.OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
         controls.dampingFactor = 0.05;
-        controls.maxPolarAngle = Math.PI / 1.5;
-        controls.minDistance = 5;
-        controls.maxDistance = 20;
-        controls.target.set(0, 1, 0); 
+        controls.maxPolarAngle = Math.PI / 1.6; // 限制不能看到太底部
+        controls.target.set(0, 1.0, 0); 
 
         // === 燈光 ===
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
-        scene.add(ambientLight);
-
+        scene.add(new THREE.AmbientLight(0xffffff, 0.7));
         const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
         dirLight.position.set(10, 15, 10);
         dirLight.castShadow = true;
         scene.add(dirLight);
 
-        const pointLight = new THREE.PointLight(0x3b82f6, 1, 10);
-        pointLight.position.set(0, 5, 5);
+        // 紫色氛圍光照亮內部卡塊
+        const pointLight = new THREE.PointLight(0xa855f7, 1.2, 20);
+        pointLight.position.set(0, 3, 0);
         scene.add(pointLight);
 
-        // 底部補光燈
-        const bottomLight = new THREE.DirectionalLight(0xffffff, 0.7);
+        const bottomLight = new THREE.DirectionalLight(0xffffff, 0.4);
         bottomLight.position.set(0, -10, 5);
         scene.add(bottomLight);
 
-        // === 建立 3D 模型 (離心煞車機構) ===
+        // === 建立 3D 模型 ===
         const mechanismGroup = new THREE.Group();
         scene.add(mechanismGroup);
 
-        // 材質定義
-        const matSteel = new THREE.MeshStandardMaterial({ color: 0x888888, metalness: 0.8, roughness: 0.4 });
-        const matShaft = new THREE.MeshStandardMaterial({ color: 0x666666, metalness: 0.8, roughness: 0.3 }); 
-        const matThread = new THREE.MeshStandardMaterial({ color: 0x555555, metalness: 0.9, roughness: 0.4 }); // 螺紋材質
-        const matWeight = new THREE.MeshStandardMaterial({ color: 0xeab308, metalness: 0.5, roughness: 0.5 }); // 黃色離心塊
-        const matInnerDrum = new THREE.MeshStandardMaterial({ color: 0xcccccc, metalness: 0.7, roughness: 0.5, side: THREE.DoubleSide }); 
-        const matOuterBrake = new THREE.MeshStandardMaterial({ color: 0x111111, metalness: 0.2, roughness: 0.9, side: THREE.DoubleSide }); 
-        const matBrakeRed = new THREE.MeshStandardMaterial({ color: 0xef4444, metalness: 0.5, roughness: 0.8, emissive: 0xaa0000 }); 
+        // 材質
+        const matSteel = new THREE.MeshStandardMaterial({ color: 0x888888, metalness: 0.7, roughness: 0.4 });
+        const matShaft = new THREE.MeshStandardMaterial({ color: 0x444444, metalness: 0.8, roughness: 0.3 }); 
+        const matWeight = new THREE.MeshStandardMaterial({ color: 0xa855f7, metalness: 0.3, roughness: 0.4 }); // 紫色矩形卡塊
+        const matSpring = new THREE.MeshStandardMaterial({ color: 0xcccccc, metalness: 0.9, roughness: 0.4 }); 
         
-        // 透明橘色外殼材質
+        // 紅色剎車片材質
+        const matBrakePad = new THREE.MeshStandardMaterial({ color: 0xcc2222, metalness: 0.4, roughness: 0.7, side: THREE.DoubleSide }); 
+        const matSpringPlate = new THREE.MeshStandardMaterial({ color: 0x444455, metalness: 0.8, roughness: 0.6, side: THREE.DoubleSide }); 
+        
+        // 橘色外殼材質 (更透明以便看清內部)
         const matCasing = new THREE.MeshPhysicalMaterial({ 
-            color: 0xd97725, 
-            metalness: 0.1, 
-            roughness: 0.1, 
-            transparent: true, 
-            opacity: 0.45, 
-            transmission: 0.5,
-            side: THREE.DoubleSide
+            color: 0xe67e22, metalness: 0.2, roughness: 0.2, 
+            transparent: true, opacity: 0.3, transmission: 0.5, side: THREE.DoubleSide
+        });
+        const matCasingBraking = new THREE.MeshPhysicalMaterial({ 
+            color: 0xff3300, metalness: 0.2, roughness: 0.5, 
+            transparent: true, opacity: 0.7, emissive: 0x882200, side: THREE.DoubleSide
         });
 
-        // 1. 中心主軸 (Smooth Shaft)
-        const shaftGeo = new THREE.CylinderGeometry(0.25, 0.25, 4.5, 32); 
-        const shaft = new THREE.Mesh(shaftGeo, matShaft);
-        shaft.position.y = 1.0; 
-        shaft.castShadow = true;
-        mechanismGroup.add(shaft);
-
-        // 視覺化立體螺紋 (Visible Threads for upward climbing)
-        const threadGroup = new THREE.Group();
-        threadGroup.position.y = 1.1; // 螺紋段起始高度
-        for(let i=0; i<15; i++) {
-            const ringGeo = new THREE.TorusGeometry(0.25, 0.04, 8, 16);
-            const ring = new THREE.Mesh(ringGeo, matThread);
-            ring.position.y = i * 0.08; // 螺距
-            ring.rotation.x = Math.PI / 2;
-            threadGroup.add(ring);
-        }
-        mechanismGroup.add(threadGroup);
-
-        // 底部小齒輪 (Pinion gear)
-        const pinionGeo = new THREE.CylinderGeometry(0.8, 0.8, 0.8, 14);
-        const pinion = new THREE.Mesh(pinionGeo, matShaft);
-        pinion.position.y = -1.05; 
-        mechanismGroup.add(pinion);
-
-        // 2. 轉子底盤 (Rotor)
-        const rotorGeo = new THREE.CylinderGeometry(1.3, 1.3, 0.2, 32);
-        const rotor = new THREE.Mesh(rotorGeo, matSteel);
-        rotor.position.y = 0.0; 
-        rotor.castShadow = true;
-
-        // 將轉子與主軸組合到一個旋轉群組
         const rotatingAssembly = new THREE.Group();
-        rotatingAssembly.add(shaft);
-        rotatingAssembly.add(pinion);
-        rotatingAssembly.add(rotor);
         mechanismGroup.add(rotatingAssembly);
 
-        // 3. 離心飛塊 (Sliding Flyweights)
-        const weights = [];
-        const maxExtension = 0.65; // 增加行程確保撞擊內齒
+        // 1. 中心主軸
+        const lowerShaft = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 2.5, 32), matShaft);
+        lowerShaft.position.y = -0.25; 
+        lowerShaft.castShadow = true;
+        rotatingAssembly.add(lowerShaft);
+
+        const pinion = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 0.8, 0.8, 16), matShaft);
+        pinion.position.y = -1.05; 
+        rotatingAssembly.add(pinion);
+
+        const upperShaft = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.25, 3.0, 32), matSteel);
+        upperShaft.position.y = 2.0; 
+        rotatingAssembly.add(upperShaft);
+
+        // 2. 轉子底盤 (Rotor Disc)
+        const rotorRadius = 1.35;
+        const rotor = new THREE.Mesh(new THREE.CylinderGeometry(rotorRadius, rotorRadius, 0.2, 64), matSteel);
+        rotor.position.y = 0.0; 
+        rotor.castShadow = true;
+        rotatingAssembly.add(rotor);
+
+        // 3. 矩形離心塊 (Rectangular Flyweights) - ★ 尺寸縮小，拉開間距 ★
+        const weightsData = [];
+        const maxSwingAngle = Math.PI / 2.5; 
 
         for (let i = 0; i < 2; i++) {
-            const weightGroup = new THREE.Group();
-            // 給予些微角度偏移 (+0.12 rad)，確保甩出時其前緣完美卡住內齒，不重疊
-            weightGroup.rotation.y = i * Math.PI + 0.12; 
+            const angleOffset = i * Math.PI; 
             
-            // 離心塊本體
-            const weightGeo = new THREE.BoxGeometry(0.5, 0.3, 0.5);
+            // 支點往內收 (原 1.0 -> 0.8)
+            const pivotRadius = 0.8; 
+            const pivotX = Math.cos(angleOffset) * pivotRadius;
+            const pivotZ = Math.sin(angleOffset) * pivotRadius;
+            
+            // 樞軸插銷固定在轉盤上
+            const pin = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.5, 16), matSteel);
+            pin.position.set(pivotX, 0.15, pivotZ);
+            rotatingAssembly.add(pin);
+
+            const pivotGroup = new THREE.Group();
+            pivotGroup.position.set(pivotX, 0.15, pivotZ);
+            
+            // 初始向內收攏
+            const initialRotation = -angleOffset - 0.15;
+            pivotGroup.rotation.y = initialRotation;
+            rotatingAssembly.add(pivotGroup);
+
+            // ★ 縮小長方形幾何體 (原長 1.2 -> 1.0, 寬 0.55 -> 0.45)
+            const weightLength = 1.0;
+            const weightWidth = 0.45;
+            const weightGeo = new THREE.BoxGeometry(weightWidth, 0.35, weightLength);
+            
+            // 支點位在前方內側
+            weightGeo.translate(weightWidth/2 - 0.1, 0, weightLength/2 - 0.15); 
+            
             const weight = new THREE.Mesh(weightGeo, matWeight);
-            weight.position.set(0.7, 0.25, 0); // 初始起點
             weight.castShadow = true;
+            pivotGroup.add(weight);
 
-            // 彈簧 (視覺用)
-            const springGeo = new THREE.CylinderGeometry(0.05, 0.05, 0.6, 8);
-            const spring = new THREE.Mesh(springGeo, matSteel);
-            spring.rotation.z = Math.PI / 2;
-            spring.position.set(0.3, 0.25, 0);
+            // 限位銷 (往內縮)
+            const stopPinGeo = new THREE.CylinderGeometry(0.06, 0.06, 0.4, 16);
+            const stopPin = new THREE.Mesh(stopPinGeo, matShaft);
+            const stopPinAngle = angleOffset + 0.35;
+            stopPin.position.set(Math.cos(stopPinAngle) * 0.55, 0.15, Math.sin(stopPinAngle) * 0.55);
+            rotatingAssembly.add(stopPin);
 
-            weightGroup.add(weight);
-            weightGroup.add(spring);
-            
-            rotatingAssembly.add(weightGroup);
-            
-            weights.push({
-                mesh: weight,
-                spring: spring,
-                baseX: 0.7
+            // 彈簧連接點與實體
+            const springAttachPoint = new THREE.Object3D();
+            springAttachPoint.position.set(-0.05, 0, weightLength/2); 
+            pivotGroup.add(springAttachPoint);
+
+            const springWrapper = new THREE.Group();
+            const anchorAngle = angleOffset + 0.8; 
+            // 彈簧錨點也往內縮
+            springWrapper.position.set(Math.cos(anchorAngle) * 0.2, 0.15, Math.sin(anchorAngle) * 0.2);
+            rotatingAssembly.add(springWrapper);
+
+            const springGeo = new THREE.CylinderGeometry(0.04, 0.04, 1, 8, 8);
+            springGeo.rotateX(Math.PI / 2); 
+            const spring = new THREE.Mesh(springGeo, matSpring);
+            springWrapper.add(spring);
+
+            weightsData.push({
+                pivotGroup: pivotGroup,
+                baseRotation: initialRotation,
+                attachPoint: springAttachPoint,
+                springWrapper: springWrapper,
+                springMesh: spring
             });
         }
 
-        // 4. 內圈螺紋錐形鼓 (Inner Conical Drum)
-        const innerDrumGroup = new THREE.Group();
-        innerDrumGroup.position.y = 0.0; 
-        mechanismGroup.add(innerDrumGroup);
+        // 4. 獨立的「紅色剎車片/制動錐」 - ★ 尺寸放大，留出飛行空間 ★
+        const brakePadGroup = new THREE.Group();
+        brakePadGroup.position.y = 0.0; 
+        mechanismGroup.add(brakePadGroup);
 
-        const geoSkirtFull = new THREE.CylinderGeometry(1.6, 1.6, 0.5, 32, 1, true);
-        const geoSkirtCut = new THREE.CylinderGeometry(1.6, 1.6, 0.5, 32, 1, true, 0, Math.PI * 1.5);
+        // 內徑加大 (原 1.45 -> 1.6)
+        const padSkirtRadius = 1.6; 
+        const geoPadSkirtFull = new THREE.CylinderGeometry(padSkirtRadius, padSkirtRadius, 0.6, 32, 1, true);
+        const geoPadSkirtCut = new THREE.CylinderGeometry(padSkirtRadius, padSkirtRadius, 0.6, 32, 1, true, 0, Math.PI * 1.5);
         
-        const geoConeFull = new THREE.CylinderGeometry(0.8, 1.6, 1.0, 32, 1, true);
-        const geoConeCut = new THREE.CylinderGeometry(0.8, 1.6, 1.0, 32, 1, true, 0, Math.PI * 1.5);
+        const padConeRadiusTop = 0.9;
+        const geoPadConeFull = new THREE.CylinderGeometry(padConeRadiusTop, padSkirtRadius, 0.4, 32, 1, true);
+        const geoPadConeCut = new THREE.CylinderGeometry(padConeRadiusTop, padSkirtRadius, 0.4, 32, 1, true, 0, Math.PI * 1.5);
         
-        const geoHubFull = new THREE.CylinderGeometry(0.4, 0.8, 0.2, 32, 1, false);
-        const geoHubCut = new THREE.CylinderGeometry(0.4, 0.8, 0.2, 32, 1, false, 0, Math.PI * 1.5);
+        const geoPadHubFull = new THREE.CylinderGeometry(0.35, padConeRadiusTop, 0.15, 32, 1, false);
+        const geoPadHubCut = new THREE.CylinderGeometry(0.35, padConeRadiusTop, 0.15, 32, 1, false, 0, Math.PI * 1.5);
 
-        const skirt = new THREE.Mesh(geoSkirtCut, matInnerDrum);
-        skirt.position.y = 0.25; 
-        innerDrumGroup.add(skirt);
+        // 預設使用 Cutaway 以便看見內部卡塊
+        const padSkirt = new THREE.Mesh(geoPadSkirtCut, matBrakePad);
+        padSkirt.position.y = 0.4; 
+        brakePadGroup.add(padSkirt);
 
-        const cone = new THREE.Mesh(geoConeCut, matInnerDrum);
-        cone.position.y = 1.0;
-        innerDrumGroup.add(cone);
+        const padCone = new THREE.Mesh(geoPadConeCut, matBrakePad);
+        padCone.position.y = 0.9;  
+        brakePadGroup.add(padCone);
 
-        const hub = new THREE.Mesh(geoHubCut, matInnerDrum);
-        hub.position.y = 1.6; 
-        innerDrumGroup.add(hub);
+        const padHub = new THREE.Mesh(geoPadHubCut, matBrakePad);
+        padHub.position.y = 1.175; 
+        brakePadGroup.add(padHub);
 
-        const innerParts = [
-            { mesh: skirt, full: geoSkirtFull, cut: geoSkirtCut },
-            { mesh: cone, full: geoConeFull, cut: geoConeCut },
-            { mesh: hub, full: geoHubFull, cut: geoHubCut }
+        const brakePadParts = [
+            { mesh: padSkirt, full: geoPadSkirtFull, cut: geoPadSkirtCut },
+            { mesh: padCone, full: geoPadConeFull, cut: geoPadConeCut },
+            { mesh: padHub, full: geoPadHubFull, cut: geoPadHubCut }
         ];
 
-        // 內圈棘輪齒 (固定在裙部內側)
-        // 增高至 0.8，確保鼓往上爬升時，底下的飛塊仍然緊緊咬著不脫離
-        const teethGeo = new THREE.BoxGeometry(0.3, 0.8, 0.2);
-        const innerTeethList = []; 
-        for(let i=0; i<12; i++) {
-            const tooth = new THREE.Mesh(teethGeo, matSteel);
-            const angle = (i / 12) * Math.PI * 2;
-            // 定位在半徑 1.45 處，剛好與伸出的飛塊(最大1.35+0.25=1.6)穩固咬合
-            tooth.position.set(Math.cos(angle) * 1.45, 0.5, Math.sin(angle) * 1.45); 
-            tooth.rotation.y = -angle;
-            
-            // 隱藏處於 90度缺口位置 (最後 3 個) 的齒
-            if (i >= 9) tooth.visible = false;
-            
-            innerDrumGroup.add(tooth);
-            innerTeethList.push(tooth);
-        }
-
-        // 5. 外圈錐形來令片 (Outer Conical Brake Pad)
-        const outerBrakeGroup = new THREE.Group();
-        outerBrakeGroup.position.y = 0.0; 
-        mechanismGroup.add(outerBrakeGroup);
-
-        const outerBrakeGeoFull = new THREE.CylinderGeometry(0.85, 1.65, 1.0, 32, 1, true);
-        const outerBrakeGeoCut = new THREE.CylinderGeometry(0.85, 1.65, 1.0, 32, 1, true, 0, Math.PI * 1.5);
-        
-        const outerBrake = new THREE.Mesh(outerBrakeGeoCut, matOuterBrake);
-        outerBrake.position.y = 1.35; // 保留 0.35 的鎖死推進空間
-        outerBrakeGroup.add(outerBrake);
-
-        // 6. 透明外殼 (Casing)
+        // 5. 橘色外殼 (Orange Outer Casing) - ★ 對應放大 ★
         const casingGroup = new THREE.Group();
         mechanismGroup.add(casingGroup);
 
-        const flangeGeo = new THREE.CylinderGeometry(2.8, 2.8, 0.3, 32);
-        const flange = new THREE.Mesh(flangeGeo, matCasing);
-        flange.position.y = -0.2;
-        casingGroup.add(flange);
+        const casingFlange = new THREE.Mesh(new THREE.CylinderGeometry(2.2, 2.2, 0.2, 32), matCasing);
+        casingFlange.position.y = 0.0;
+        casingGroup.add(casingFlange);
 
-        const domeGeo = new THREE.CylinderGeometry(1.6, 2.6, 2.0, 32);
-        const dome = new THREE.Mesh(domeGeo, matCasing);
-        dome.position.y = 0.95;
-        casingGroup.add(dome);
+        // 下部直筒 (原 1.55 -> 1.7)
+        const casingSkirt = new THREE.Mesh(new THREE.CylinderGeometry(1.7, 1.7, 0.7, 32, 1, true), matCasing);
+        casingSkirt.position.y = 0.45;
+        casingGroup.add(casingSkirt);
 
-        const topCylGeo = new THREE.CylinderGeometry(1.2, 1.2, 1.5, 32);
-        const topCyl = new THREE.Mesh(topCylGeo, matCasing);
-        topCyl.position.y = 2.7;
-        casingGroup.add(topCyl);
+        // 迫緊錐面 (原 0.85/1.55 -> 1.0/1.7)
+        const casingCone = new THREE.Mesh(new THREE.CylinderGeometry(1.0, 1.7, 0.4, 32, 1, true), matCasing);
+        casingCone.position.y = 1.0;
+        casingGroup.add(casingCone);
 
-        const boxGeo = new THREE.BoxGeometry(1.0, 1.2, 0.8);
-        const box = new THREE.Mesh(boxGeo, matCasing);
-        box.position.set(1.2, 2.7, 0);
-        casingGroup.add(box);
+        // 上部直筒 
+        const casingTop = new THREE.Mesh(new THREE.CylinderGeometry(1.0, 1.0, 1.1, 32, 1, true), matCasing);
+        casingTop.position.y = 1.75;
+        casingGroup.add(casingTop);
 
-        // === UI 事件監聽 ===
+        // 6. 碟形彈簧 (Plate Springs)
+        const plateSpringsContainer = new THREE.Group();
+        mechanismGroup.add(plateSpringsContainer);
+        
+        const springTopY = 2.3;
+        const springBaseY = 1.3; 
+        plateSpringsContainer.position.y = (springTopY + springBaseY) / 2; 
+
+        const numPlates = 8;
+        const plateSpringsList = [];
+        const plateHeight = 0.12;
+        
+        for(let i=0; i<numPlates; i++) {
+            const isEven = i % 2 === 0;
+            const rTop = isEven ? 0.5 : 0.85;
+            const rBot = isEven ? 0.85 : 0.5;
+            
+            const pGeoFull = new THREE.CylinderGeometry(rTop, rBot, plateHeight, 32, 1, true);
+            const pGeoCut = new THREE.CylinderGeometry(rTop, rBot, plateHeight, 32, 1, true, 0, Math.PI * 1.5);
+            
+            const plate = new THREE.Mesh(pGeoCut, matSpringPlate);
+            plate.position.y = -((numPlates * plateHeight)/2) + (i * plateHeight) + (plateHeight/2);
+            plateSpringsContainer.add(plate);
+            plateSpringsList.push({ mesh: plate, full: pGeoFull, cut: pGeoCut });
+        }
+
+
+        // === UI 事件 ===
         elTargetRpm.addEventListener('input', (e) => {
             if (currentState === STATE.NORMAL) {
                 targetSpeed = parseInt(e.target.value);
                 elTargetRpmVal.innerText = targetSpeed;
-            } else {
-                e.target.value = 0;
-            }
+            } else { e.target.value = 0; }
         });
 
-        // 視角控制：外殼隱藏與顯示
         let casingVisible = true;
         btnCasing.addEventListener('click', () => {
             casingVisible = !casingVisible;
             casingGroup.visible = casingVisible;
-            btnCasing.innerText = casingVisible ? "👁️ 隱藏外殼" : "👁️ 顯示外殼";
-            if(casingVisible) {
-                btnCasing.classList.add('bg-gray-700'); btnCasing.classList.remove('bg-blue-600');
-            } else {
-                btnCasing.classList.add('bg-blue-600'); btnCasing.classList.remove('bg-gray-700');
-            }
+            btnCasing.innerText = casingVisible ? "👁️ 隱藏橘色外殼" : "👁️ 顯示橘色外殼";
+            if(casingVisible) { btnCasing.classList.replace('bg-slate-700', 'bg-slate-700'); } 
         });
 
-        // 視角控制：內外錐面剖面切換
         let cutawayActive = true;
         btnCutaway.addEventListener('click', () => {
             cutawayActive = !cutawayActive;
             
-            outerBrake.geometry = cutawayActive ? outerBrakeGeoCut : outerBrakeGeoFull;
-            
-            innerParts.forEach(part => {
-                part.mesh.geometry = cutawayActive ? part.cut : part.full;
-            });
-            
-            innerTeethList.forEach((tooth, i) => {
-                if (i >= 9) tooth.visible = !cutawayActive;
-            });
+            brakePadParts.forEach(part => part.mesh.geometry = cutawayActive ? part.cut : part.full);
+            plateSpringsList.forEach(part => part.mesh.geometry = cutawayActive ? part.cut : part.full);
 
-            btnCutaway.innerText = cutawayActive ? "🔪 恢復完整錐面" : "🔪 錐面剖面";
-            
-            if(cutawayActive) {
-                btnCutaway.classList.add('bg-blue-600'); btnCutaway.classList.remove('bg-gray-700');
-            } else {
-                btnCutaway.classList.add('bg-gray-700'); btnCutaway.classList.remove('bg-blue-600');
-            }
+            btnCutaway.innerText = cutawayActive ? "🔪 完整剎車片" : "🔪 剎車片剖面";
+            if(cutawayActive) { btnCutaway.classList.replace('bg-slate-700', 'bg-red-600'); } 
+            else { btnCutaway.classList.replace('bg-red-600', 'bg-slate-700'); }
         });
 
         btnReset.addEventListener('click', () => {
@@ -387,28 +380,30 @@
             elTargetRpm.value = 0;
             elTargetRpmVal.innerText = "0";
             
-            innerParts.forEach(part => part.mesh.material = matInnerDrum);
-            weights.forEach(w => w.mesh.material.color.setHex(0xeab308)); 
+            casingSkirt.material = matCasing; 
+            casingCone.material = matCasing;
             
-            // 退回螺紋底部
-            innerDrumGroup.position.y = 0.0;
-            innerDrumGroup.rotation.y = 0;
+            brakePadGroup.position.y = 0.0;
+            brakePadGroup.rotation.y = 0;
+            
+            plateSpringsContainer.scale.y = 1.0;
+            plateSpringsContainer.position.y = (springTopY + springBaseY) / 2;
 
             updateStatusUI();
         });
 
         function updateStatusUI() {
             if (currentState === STATE.NORMAL) {
-                elStatusBadge.className = "px-2 py-1 rounded text-xs font-bold bg-green-500/20 text-green-400 border border-green-500/50";
-                elStatusBadge.innerText = "🟢 正常";
+                elStatusBadge.className = "px-2 py-1 rounded text-xs font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/50";
+                elStatusBadge.innerText = "🟢 正常運轉";
                 btnReset.disabled = true;
             } else if (currentState === STATE.TRIGGERED) {
-                elStatusBadge.className = "px-2 py-1 rounded text-xs font-bold bg-yellow-500/20 text-yellow-400 border border-yellow-500/50 animate-pulse";
-                elStatusBadge.innerText = "⚠️ 煞車中";
+                elStatusBadge.className = "px-2 py-1 rounded text-xs font-bold bg-amber-500/20 text-amber-400 border border-amber-500/50 animate-pulse";
+                elStatusBadge.innerText = "⚠️ 剎車片迫緊中";
                 btnReset.disabled = true;
             } else if (currentState === STATE.LOCKED) {
                 elStatusBadge.className = "px-2 py-1 rounded text-xs font-bold bg-red-500/20 text-red-400 border border-red-500/50";
-                elStatusBadge.innerText = "🛑 鎖死";
+                elStatusBadge.innerText = "🛑 楔入外殼鎖死";
                 btnReset.disabled = false;
             }
         }
@@ -417,6 +412,8 @@
 
         // === 動畫與物理循環 ===
         const clock = new THREE.Clock();
+        const vectorTarget = new THREE.Vector3();
+        const vectorAnchor = new THREE.Vector3();
 
         function animate() {
             requestAnimationFrame(animate);
@@ -425,11 +422,9 @@
             if (currentState === STATE.NORMAL) {
                 const acceleration = 30.0; 
                 if (currentSpeed < targetSpeed) {
-                    currentSpeed += acceleration * delta;
-                    if (currentSpeed > targetSpeed) currentSpeed = targetSpeed;
+                    currentSpeed += Math.min(acceleration * delta, targetSpeed - currentSpeed);
                 } else if (currentSpeed > targetSpeed) {
-                    currentSpeed -= acceleration * delta;
-                    if (currentSpeed < targetSpeed) currentSpeed = targetSpeed;
+                    currentSpeed -= Math.min(acceleration * delta, currentSpeed - targetSpeed);
                 }
 
                 if (currentSpeed >= tripSpeed) {
@@ -438,32 +433,36 @@
                     elTargetRpm.value = 0;
                     elTargetRpmVal.innerText = "0";
                     
-                    innerParts.forEach(part => part.mesh.material = matBrakeRed);
-                    weights.forEach(w => w.mesh.material.color.setHex(0xff3333));
+                    casingSkirt.material = matCasingBraking; 
+                    casingCone.material = matCasingBraking;
                     updateStatusUI();
                 }
 
             } else if (currentState === STATE.TRIGGERED) {
-                // 強大制動力
-                const brakingForce = 1200.0; 
-                currentSpeed -= brakingForce * delta;
                 
-                // 【核心修正】棘輪帶動與螺紋爬升：
-                // 內錐形鼓被飛塊「卡死」，所以跟著中心主軸以相同的角速度一起旋轉
                 const radPerSec = (currentSpeed * Math.PI * 2) / 60;
-                innerDrumGroup.rotation.y -= radPerSec * delta; 
+                brakePadGroup.rotation.y -= radPerSec * delta; 
                 
-                // 同步沿著中心螺紋向上爬升 (轉換旋轉動能為軸向推力)
-                innerDrumGroup.position.y += Math.abs(radPerSec) * delta * 0.15; 
+                brakePadGroup.position.y += Math.abs(radPerSec) * delta * 0.15; 
                 
-                // 最大推進距離：撞到底部外圈來令片
-                const maxWedgeY = 0.35; 
-                if (innerDrumGroup.position.y >= maxWedgeY) {
-                    innerDrumGroup.position.y = maxWedgeY;
-                    currentSpeed = 0; // 撞死瞬間完全煞停
-                }
+                const maxClimb = 0.2; 
+                let currentClimb = brakePadGroup.position.y;
+                if (currentClimb >= maxClimb) currentClimb = maxClimb;
+                
+                const compressionRatio = 1.0 - (currentClimb / maxClimb) * 0.5; 
+                plateSpringsContainer.scale.y = compressionRatio;
+                
+                const originalSpringHeight = springTopY - springBaseY; 
+                const newSpringHeight = originalSpringHeight * compressionRatio;
+                plateSpringsContainer.position.y = springTopY - (newSpringHeight / 2);
 
-                if (currentSpeed <= 0) {
+                const brakingForce = 500 + (4000 * Math.pow(currentClimb / maxClimb, 2)); 
+                currentSpeed -= brakingForce * delta;
+
+                casingGroup.rotation.y -= radPerSec * delta * 0.05;
+
+                if (currentClimb >= maxClimb || currentSpeed <= 0) {
+                    brakePadGroup.position.y = currentClimb;
                     currentSpeed = 0;
                     currentState = STATE.LOCKED;
                     updateStatusUI();
@@ -473,29 +472,32 @@
             let displayRpm = Math.max(0, Math.round(currentSpeed + (currentSpeed > 0 ? (Math.random()*2-1) : 0)));
             elCurrentRpmDisplay.innerText = displayRpm;
 
-            // 旋轉主軸與底盤 (順時針/負值旋轉)
             const radPerSec = (currentSpeed * Math.PI * 2) / 60;
             rotatingAssembly.rotation.y -= radPerSec * delta; 
 
-            // 飛塊滑出邏輯
             let normalizedSpeed = currentSpeed / tripSpeed;
-            if (currentState !== STATE.NORMAL) {
-                normalizedSpeed = 1.0; 
-            }
+            if (currentState !== STATE.NORMAL) { normalizedSpeed = 1.0; } 
             
-            let extension = Math.pow(normalizedSpeed, 2) * maxExtension;
-            if (extension > maxExtension) extension = maxExtension;
+            let swing = Math.pow(normalizedSpeed, 2) * maxSwingAngle;
+            if (swing > maxSwingAngle) swing = maxSwingAngle;
 
-            weights.forEach(w => {
-                const targetX = w.baseX + extension;
-                w.mesh.position.x += (targetX - w.mesh.position.x) * 15 * delta;
+            weightsData.forEach(data => {
+                data.pivotGroup.rotation.y = data.baseRotation + swing;
+
+                data.attachPoint.getWorldPosition(vectorTarget);
+                data.springWrapper.getWorldPosition(vectorAnchor);
                 
-                w.spring.scale.y = 1 + extension * 1.5;
-                w.spring.position.x = 0.3 + extension / 2;
+                const distance = vectorAnchor.distanceTo(vectorTarget);
+                
+                const localTarget = data.springWrapper.parent.worldToLocal(vectorTarget.clone());
+                data.springWrapper.lookAt(vectorTarget); 
+                
+                data.springMesh.scale.z = distance;
+                data.springMesh.position.z = distance / 2; 
             });
 
             if (currentSpeed > 50 && currentState === STATE.NORMAL) {
-                const shake = (currentSpeed / 150) * 0.02;
+                const shake = (currentSpeed / 150) * 0.015;
                 camera.position.x += (Math.random() - 0.5) * shake;
                 camera.position.y += (Math.random() - 0.5) * shake;
             }
@@ -510,8 +512,7 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
 
-        animate();
-
+        animate(performance.now());
     </script>
 </body>
 </html>
