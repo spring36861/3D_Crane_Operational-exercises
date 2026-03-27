@@ -111,8 +111,12 @@
         scene.fog = new THREE.Fog(0x0f172a, 15, 60); // 配合深色 Tailwind 背景
 
         const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-        // 拉遠並調高攝影機，適應手機與桌面版
-        camera.position.set(0, 10, 18); 
+        // 依據裝置寬度設定初始攝影機距離
+        if (window.innerWidth < 640) {
+            camera.position.set(0, 12, 26); // 手機版拉更遠一點
+        } else {
+            camera.position.set(0, 10, 18); // 電腦版正常距離
+        }
 
         const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
@@ -124,7 +128,14 @@
         controls.enableDamping = true;
         controls.dampingFactor = 0.05;
         controls.maxPolarAngle = Math.PI / 1.6; // 限制不能看到太底部
-        controls.target.set(0, 1.0, 0); 
+        
+        // ★ 響應式視角中心設定：手機版將目標往下移，讓模型浮在畫面上半部
+        if (window.innerWidth < 640) {
+            controls.target.set(0, -2.5, 0); 
+        } else {
+            controls.target.set(0, -0.5, 0); 
+        }
+        controls.update();
 
         // === 燈光 ===
         scene.add(new THREE.AmbientLight(0xffffff, 0.7));
@@ -510,6 +521,13 @@
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
+            
+            // 螢幕旋轉或縮放時，動態修正中心目標位置
+            if (window.innerWidth < 640) {
+                controls.target.setY(-2.5);
+            } else {
+                controls.target.setY(-0.5);
+            }
         });
 
         animate(performance.now());
