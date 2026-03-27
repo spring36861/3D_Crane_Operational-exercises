@@ -14,6 +14,8 @@
     <style>
         body { margin: 0; overflow: hidden; background-color: #0f172a; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; touch-action: none; }
         #canvas-container { width: 100%; height: 100vh; display: block; position: absolute; top: 0; left: 0; z-index: 1; }
+        /* 確保畫布可以接收指標事件 */
+        canvas { touch-action: none; }
         .noselect { user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
 
         /* === UI 介面層 === */
@@ -26,7 +28,7 @@
         }
         #compass {
             width: 90px; height: 90px;
-            background: rgba(20, 25, 40, 0.4); /* 稍微調淡 */
+            background: rgba(20, 25, 40, 0.4); 
             border-radius: 50%;
             border: 2px solid rgba(255, 255, 255, 0.15);
             position: relative;
@@ -48,7 +50,6 @@
             transform: scale(0.9); 
         }
         .rc-body {
-            /* 改為 RGBA 半透明橘色 */
             background-color: rgba(234, 88, 12, 0.65); 
             width: 130px;
             border-radius: 16px;
@@ -61,7 +62,6 @@
             flex-direction: column;
             gap: 12px;
             border: 1px solid rgba(194, 65, 12, 0.5);
-            /* 加入毛玻璃效果 */
             backdrop-filter: blur(8px);
             -webkit-backdrop-filter: blur(8px);
         }
@@ -84,7 +84,6 @@
         }
         .btn-black {
             height: 45px;
-            /* 按鈕稍微保留實體感，但也帶一點點透明 */
             background: radial-gradient(circle at 35% 30%, rgba(63, 63, 70, 0.9), rgba(24, 24, 27, 0.95));
             border-radius: 10px;
             border: 1px solid rgba(0,0,0,0.5);
@@ -105,7 +104,7 @@
         }
         .rc-label {
             font-size: 9px; font-weight: 800; color: #1f2937; text-align: center; margin-bottom: 2px; text-transform: uppercase;
-            text-shadow: 0 0 2px rgba(255,255,255,0.3); /* 增加文字可讀性 */
+            text-shadow: 0 0 2px rgba(255,255,255,0.3); 
         }
         .rc-footer {
             margin-top: 5px; text-align: center; font-size: 8px; font-weight: 800; color: rgba(0,0,0,0.4);
@@ -136,9 +135,7 @@
     <div id="canvas-container"></div>
     <div id="collision-flash"></div>
 
-    <!-- UI 容器 -->
     <div id="compass-container">
-        <!-- 羅盤 -->
         <div id="compass">
             <div class="cp-cross-v"></div>
             <div class="cp-cross-h"></div>
@@ -148,10 +145,8 @@
             <div class="cp-label cp-w">西</div>
             <div class="cp-center"></div>
         </div>
-        <!-- 速度表已移除 -->
     </div>
 
-    <!-- 遙控器 -->
     <div id="rc-container">
         <div class="rc-body">
             <div class="rc-top-slot"></div>
@@ -198,7 +193,6 @@
 
     <script>
         // --- 1. 速度設定 (加速 6 倍) ---
-        // Bridge: ~2.1 m/s, Trolley: ~1.45 m/s
         const SPEED_MULTIPLIER = 6.0;
         const REAL_SPEEDS = {
             bridge: (21.0 / 60.0) * SPEED_MULTIPLIER,
@@ -209,13 +203,11 @@
         const state = {
             move: { north: false, south: false, east: false, west: false, up: false, down: false },
             velocity: { bridge: 0, trolley: 0, hoist: 0 },
-            // 加速參數調整：確保約 1 秒內達到最大值
-            // a = v_max / 1s
             physics: {
                 accel: { 
-                    bridge: REAL_SPEEDS.bridge,   // ~2.1 m/s^2
-                    trolley: REAL_SPEEDS.trolley, // ~1.45 m/s^2
-                    hoist: REAL_SPEEDS.hoist * 2  // 吊鉤稍微反應快一點
+                    bridge: REAL_SPEEDS.bridge,   
+                    trolley: REAL_SPEEDS.trolley, 
+                    hoist: REAL_SPEEDS.hoist * 2  
                 }, 
                 decel: { bridge: 0.8, trolley: 0.8, hoist: 1.0 }
             },
@@ -246,8 +238,7 @@
         scene.fog = new THREE.Fog('#94a3b8', 20, 150);
 
         const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.set(0, 1.7, 50);
-
+        
         const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -281,7 +272,7 @@
         scene.add(floor);
         scene.add(new THREE.GridHelper(120, 12, 0x94a3b8, 0xcbd5e1));
 
-        // **輔助投影 (Drop Shadow Marker)** - 保留此陰影作為對準依據
+        // 輔助投影 (Drop Shadow Marker)
         const shadowMarkerGeo = new THREE.RingGeometry(0.1, 0.8, 32);
         const shadowMarkerMat = new THREE.MeshBasicMaterial({ 
             color: 0x000000, 
@@ -333,7 +324,7 @@
             new THREE.CylinderGeometry(0.8, 0.8, 1.2, 32),
             new THREE.MeshStandardMaterial({ color: '#2563eb' })
         );
-        boxMesh.castShadow = false; // 關鍵修正：關閉貨物本身的陰影，只保留輔助投影
+        boxMesh.castShadow = false;
         payloadGroup.add(boxMesh);
         
         const hook = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.6), matMetalDark);
@@ -406,6 +397,45 @@
                 return 0;
             }
         }
+
+        // --- 新增：視角滑動控制 (球座標系統) ---
+        let isDragging = false;
+        let previousPointerPosition = { x: 0, y: 0 };
+        
+        // 設定初始視角：半徑 25，仰角約 78 度 (接近平視)，水平角 0 (從南向北看)
+        const camSpherical = new THREE.Spherical(25, Math.PI / 2 - 0.2, 0);
+
+        // 綁定畫布的滑動事件 (Pointer Events 支援滑鼠與觸控)
+        renderer.domElement.addEventListener('pointerdown', (e) => {
+            isDragging = true;
+            previousPointerPosition = { x: e.clientX, y: e.clientY };
+        });
+
+        renderer.domElement.addEventListener('pointermove', (e) => {
+            if (!isDragging) return;
+
+            const deltaMove = {
+                x: e.clientX - previousPointerPosition.x,
+                y: e.clientY - previousPointerPosition.y
+            };
+
+            const rotateSpeed = 0.005; // 視角旋轉靈敏度
+
+            // 水平滑動改變方位角 (theta)
+            camSpherical.theta -= deltaMove.x * rotateSpeed;
+            // 垂直滑動改變仰角 (phi)
+            camSpherical.phi -= deltaMove.y * rotateSpeed;
+
+            // 限制仰角，避免鑽入地底 (大於 90度/PI/2)，也避免完全垂直看下去 (設為 0.1)
+            camSpherical.phi = THREE.MathUtils.clamp(camSpherical.phi, 0.1, Math.PI / 2 - 0.05);
+
+            previousPointerPosition = { x: e.clientX, y: e.clientY };
+        });
+
+        window.addEventListener('pointerup', () => {
+            isDragging = false;
+        });
+        // ----------------------------------------
 
         function animate() {
             requestAnimationFrame(animate);
@@ -481,12 +511,17 @@
             shadowMarker.position.x = payloadPos.x;
             shadowMarker.position.z = payloadPos.z;
 
-            // --- 視角控制 (模擬人員站立視角) ---
-            const camOffset = new THREE.Vector3(0, 1.7, 25); 
-            const targetCamPos = payloadPos.clone().add(camOffset);
+            // --- 視角控制 (模擬人員站立視角 + 環繞滑動) ---
+            // 1. 將球座標轉換回直角座標 (Vector3)，得到目前的相機偏移量
+            const currentCamOffset = new THREE.Vector3().setFromSpherical(camSpherical);
             
+            // 2. 目標相機位置 = 貨物目前位置 + 偏移量
+            const targetCamPos = payloadPos.clone().add(currentCamOffset);
+            
+            // 3. 確保相機不低於人員站立高度 (1.7m)
             if(targetCamPos.y < 1.7) targetCamPos.y = 1.7;
 
+            // 4. 讓相機平滑移動到目標位置，並永遠注視著貨物
             camera.position.lerp(targetCamPos, 0.1);
             camera.lookAt(payloadPos.x, payloadPos.y + 1, payloadPos.z);
 
