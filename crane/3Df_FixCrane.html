@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>3D 起重機吊掛練習器</title>
-    
+
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="theme-color" content="#0f172a">
@@ -14,13 +14,9 @@
     <style>
         body { margin: 0; overflow: hidden; background-color: #0f172a; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; touch-action: none; }
         #canvas-container { width: 100%; height: 100vh; display: block; position: absolute; top: 0; left: 0; z-index: 1; }
-        /* 確保畫布可以接收指標事件，且阻擋瀏覽器預設的雙指縮放網頁行為 */
         canvas { touch-action: none; }
         .noselect { user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
 
-        /* === UI 介面層 === */
-        
-        /* 1. 左上角羅盤 */
         #compass-container {
             position: absolute; top: 20px; left: 20px; z-index: 10;
             display: flex; gap: 20px; align-items: flex-start;
@@ -28,7 +24,7 @@
         }
         #compass {
             width: 90px; height: 90px;
-            background: rgba(20, 25, 40, 0.4); 
+            background: rgba(20, 25, 40, 0.4);
             border-radius: 50%;
             border: 2px solid rgba(255, 255, 255, 0.15);
             position: relative;
@@ -43,89 +39,52 @@
         .cp-cross-h { position: absolute; left: 15%; right: 15%; top: 50%; height: 1px; background: rgba(255,255,255,0.2); transform: translateY(-50%); }
         .cp-center { position: absolute; top: 50%; left: 50%; width: 6px; height: 6px; background: white; border-radius: 50%; transform: translate(-50%, -50%); }
 
-        /* 2. 橘色遙控器 (半透明化) */
         #rc-container {
             position: absolute; bottom: 20px; right: 20px; z-index: 10;
             transform-origin: bottom right;
-            transform: scale(0.9); 
+            transform: scale(0.9);
         }
         .rc-body {
-            background-color: rgba(234, 88, 12, 0.65); 
+            background-color: rgba(234, 88, 12, 0.65);
             width: 130px;
             border-radius: 16px;
             padding: 15px 10px;
-            box-shadow: 
-                0 10px 20px rgba(0,0,0,0.3),
-                inset 2px 2px 5px rgba(255,255,255,0.2),
-                inset -2px -2px 5px rgba(0,0,0,0.1);
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.3), inset 2px 2px 5px rgba(255,255,255,0.2), inset -2px -2px 5px rgba(0,0,0,0.1);
+            display: flex; flex-direction: column; gap: 12px;
             border: 1px solid rgba(194, 65, 12, 0.5);
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
+            backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
         }
-        .rc-top-slot {
-            width: 60%; height: 6px; background: rgba(0,0,0,0.2); 
-            margin: 0 auto 5px auto; border-radius: 3px;
-        }
-        .rc-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px 10px;
-            padding: 0 5px;
-        }
-        .btn-slot-empty {
-            height: 45px;
-            border-radius: 8px;
-            background: rgba(0,0,0,0.1);
-            border: 1px solid rgba(0,0,0,0.15);
-            box-shadow: inset 1px 1px 3px rgba(0,0,0,0.1);
-        }
+        .rc-top-slot { width: 60%; height: 6px; background: rgba(0,0,0,0.2); margin: 0 auto 5px auto; border-radius: 3px; }
+        .rc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 10px; padding: 0 5px; }
+        .btn-slot-empty { height: 45px; border-radius: 8px; background: rgba(0,0,0,0.1); border: 1px solid rgba(0,0,0,0.15); box-shadow: inset 1px 1px 3px rgba(0,0,0,0.1); }
         .btn-black {
             height: 45px;
             background: radial-gradient(circle at 35% 30%, rgba(63, 63, 70, 0.9), rgba(24, 24, 27, 0.95));
-            border-radius: 10px;
-            border: 1px solid rgba(0,0,0,0.5);
-            color: white;
-            font-weight: bold;
-            font-size: 16px;
+            border-radius: 10px; border: 1px solid rgba(0,0,0,0.5);
+            color: white; font-weight: bold; font-size: 16px;
             display: flex; align-items: center; justify-content: center;
             box-shadow: 0 4px 5px rgba(0,0,0,0.3), inset 0 1px 1px rgba(255,255,255,0.2);
-            cursor: pointer;
-            -webkit-tap-highlight-color: transparent;
-            transition: transform 0.05s, box-shadow 0.05s;
-            position: relative;
+            cursor: pointer; -webkit-tap-highlight-color: transparent;
+            transition: transform 0.05s, box-shadow 0.05s; position: relative;
         }
         .btn-black:active, .btn-black.active {
             transform: translateY(2px);
             box-shadow: 0 1px 1px rgba(0,0,0,0.3), inset 0 2px 5px rgba(0,0,0,0.6);
             color: #fbbf24;
         }
-        .rc-label {
-            font-size: 9px; font-weight: 800; color: #1f2937; text-align: center; margin-bottom: 2px; text-transform: uppercase;
-            text-shadow: 0 0 2px rgba(255,255,255,0.3); 
-        }
-        .rc-footer {
-            margin-top: 5px; text-align: center; font-size: 8px; font-weight: 800; color: rgba(0,0,0,0.4);
-        }
+        .rc-label { font-size: 9px; font-weight: 800; color: #1f2937; text-align: center; margin-bottom: 2px; text-transform: uppercase; text-shadow: 0 0 2px rgba(255,255,255,0.3); }
+        .rc-footer { margin-top: 5px; text-align: center; font-size: 8px; font-weight: 800; color: rgba(0,0,0,0.4); }
 
-        /* 碰撞閃爍紅框 */
         #collision-flash {
             position: fixed; top: 0; left: 0; right: 0; bottom: 0;
             border: 0px solid #ef4444; pointer-events: none; z-index: 5;
             transition: border-width 0.1s;
         }
-
-        /* 重置按鈕 */
         #reset-btn {
             position: absolute; bottom: 20px; left: 20px; z-index: 20;
-            background: rgba(55, 65, 81, 0.6); 
-            border: 1px solid rgba(75, 85, 99, 0.5);
-            backdrop-filter: blur(4px);
-            color: #e5e7eb; padding: 6px 12px; border-radius: 6px; font-size: 12px;
-            cursor: pointer;
-            transition: background 0.2s;
+            background: rgba(55, 65, 81, 0.6); border: 1px solid rgba(75, 85, 99, 0.5);
+            backdrop-filter: blur(4px); color: #e5e7eb; padding: 6px 12px; border-radius: 6px; font-size: 12px;
+            cursor: pointer; transition: background 0.2s;
         }
         #reset-btn:hover { background: rgba(55, 65, 81, 0.9); }
     </style>
@@ -150,7 +109,6 @@
     <div id="rc-container">
         <div class="rc-body">
             <div class="rc-top-slot"></div>
-            
             <div class="rc-grid">
                 <div><div class="btn-slot-empty"></div></div>
                 <div>
@@ -163,9 +121,7 @@
                     <div id="btn-down" class="btn-black" data-action="down">下</div>
                 </div>
             </div>
-
             <div style="height:1px; background:rgba(0,0,0,0.1); margin: 5px 0;"></div>
-
             <div class="rc-grid">
                 <div>
                     <div class="rc-label">SOUTH</div>
@@ -184,7 +140,6 @@
                     <div id="btn-west" class="btn-black" data-action="west">西</div>
                 </div>
             </div>
-
             <div class="rc-footer">CRANE CONTROLLER</div>
         </div>
     </div>
@@ -192,58 +147,61 @@
     <button id="reset-btn" onclick="resetGame()">重置位置</button>
 
     <script>
-        // --- 1. 速度設定 (加速 6 倍) ---
+        // === 速度設定 ===
         const SPEED_MULTIPLIER = 6.0;
         const REAL_SPEEDS = {
             bridge: (21.0 / 60.0) * SPEED_MULTIPLIER,
             trolley: (14.5 / 60.0) * SPEED_MULTIPLIER,
-            hoist: (4.8 / 60.0) * SPEED_MULTIPLIER
+            hoist: (4.8 / 60.0) * SPEED_MULTIPLIER * 2
         };
 
         const state = {
             move: { north: false, south: false, east: false, west: false, up: false, down: false },
             velocity: { bridge: 0, trolley: 0, hoist: 0 },
             physics: {
-                accel: { 
-                    bridge: REAL_SPEEDS.bridge,   
-                    trolley: REAL_SPEEDS.trolley, 
-                    hoist: REAL_SPEEDS.hoist * 2  
-                }, 
-                decel: { bridge: 0.8, trolley: 0.8, hoist: 1.0 }
+                accel: { bridge: REAL_SPEEDS.bridge * 0.8, trolley: REAL_SPEEDS.trolley * 0.8, hoist: REAL_SPEEDS.hoist * 50 },
+                decel: { bridge: 1.2, trolley: 1.2, hoist: 1.0 }
             },
-            limits: { x: 50, z: 40, minL: 1, maxL: 24 },
-            bridgeY: 25, 
-            bridgeZ: 0,
-            trolleyX: -26,
-            cableLength: 0,
-            collisions: 0
+            limits: { x: 44, z: 40, minL: 1, maxL: 27 },
+            bridgeY: 25, bridgeZ: 0, trolleyX: -26, cableLength: 0, collisions: 0
         };
 
-        const GRAVITY_FORCE = 35.0; 
-        const DAMPING = 0.999; 
-
-        // --- 2. 系統變數 ---
+        const GRAVITY_FORCE = 60.0;
+        const DAMPING = 0.9995;
         const clock = new THREE.Clock();
         const gravity = new THREE.Vector3(0, -GRAVITY_FORCE, 0);
         let payloadPos = new THREE.Vector3();
         let payloadPrevPos = new THREE.Vector3();
         const obstacles = [];
-        
         const collisionFlash = document.getElementById('collision-flash');
 
-        // --- 3. Three.js 初始化 ---
+        // === Three.js 初始化 ===
         const container = document.getElementById('canvas-container');
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color('#94a3b8'); 
-        scene.fog = new THREE.Fog('#94a3b8', 20, 150);
+
+        // 漸層天空
+        const skyCanvas = document.createElement('canvas');
+        skyCanvas.width = 2; skyCanvas.height = 256;
+        const skyCtx = skyCanvas.getContext('2d');
+        const skyGrad = skyCtx.createLinearGradient(0, 0, 0, 256);
+        skyGrad.addColorStop(0, '#87CEEB');
+        skyGrad.addColorStop(0.4, '#B0D4E8');
+        skyGrad.addColorStop(0.7, '#D4E4ED');
+        skyGrad.addColorStop(1.0, '#E8ECF0');
+        skyCtx.fillStyle = skyGrad;
+        skyCtx.fillRect(0, 0, 2, 256);
+        const skyTex = new THREE.CanvasTexture(skyCanvas);
+        scene.background = skyTex;
+        scene.fog = new THREE.FogExp2('#D4E4ED', 0.008);
 
         const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
-        
-        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         renderer.shadowMap.enabled = true;
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.2;
         container.appendChild(renderer.domElement);
 
         window.addEventListener('resize', () => {
@@ -252,141 +210,429 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
 
-        // 燈光
-        scene.add(new THREE.AmbientLight(0xffffff, 0.6));
-        const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
-        dirLight.position.set(40, 80, 40);
+        // === 光影系統 ===
+        const ambLight = new THREE.AmbientLight(0xffffff, 0.4);
+        scene.add(ambLight);
+        const hemiLight = new THREE.HemisphereLight(0x87CEEB, 0x556B2F, 0.5);
+        scene.add(hemiLight);
+        const dirLight = new THREE.DirectionalLight(0xFFF5E0, 1.0);
+        dirLight.position.set(50, 80, 30);
         dirLight.castShadow = true;
         dirLight.shadow.mapSize.set(2048, 2048);
-        dirLight.shadow.camera.left = -60; dirLight.shadow.camera.right = 60;
-        dirLight.shadow.camera.top = 60; dirLight.shadow.camera.bottom = -60;
+        dirLight.shadow.camera.left = -70; dirLight.shadow.camera.right = 70;
+        dirLight.shadow.camera.top = 70; dirLight.shadow.camera.bottom = -70;
+        dirLight.shadow.camera.near = 10; dirLight.shadow.camera.far = 200;
+        dirLight.shadow.bias = -0.001;
         scene.add(dirLight);
+        const fillLight = new THREE.DirectionalLight(0x8EC8F0, 0.3);
+        fillLight.position.set(-40, 30, -50);
+        scene.add(fillLight);
 
-        // 地板
+        // === 材質庫 ===
+        function createStripeTex(c1, c2, count) {
+            const cv = document.createElement('canvas');
+            cv.width = count * 20; cv.height = 20;
+            const ctx = cv.getContext('2d');
+            for (let i = 0; i < count; i++) {
+                ctx.fillStyle = i % 2 === 0 ? c1 : c2;
+                ctx.fillRect(i * 20, 0, 20, 20);
+            }
+            const tex = new THREE.CanvasTexture(cv);
+            tex.wrapS = THREE.RepeatWrapping;
+            tex.wrapT = THREE.RepeatWrapping;
+            return tex;
+        }
+
+        const warningTex = createStripeTex('#F59E0B', '#1F2937', 20);
+        warningTex.repeat.set(8, 1);
+
+        const matYellow = new THREE.MeshStandardMaterial({ color: '#E8A817', metalness: 0.3, roughness: 0.5 });
+        const matYellowBright = new THREE.MeshStandardMaterial({ color: '#FBBF24', metalness: 0.2, roughness: 0.4 });
+        const matDarkSteel = new THREE.MeshStandardMaterial({ color: '#2D3748', metalness: 0.7, roughness: 0.3 });
+        const matLightSteel = new THREE.MeshStandardMaterial({ color: '#718096', metalness: 0.6, roughness: 0.35 });
+        const matRail = new THREE.MeshStandardMaterial({ color: '#4A5568', metalness: 0.8, roughness: 0.25 });
+        const matWarning = new THREE.MeshStandardMaterial({ map: warningTex, metalness: 0.2, roughness: 0.5 });
+        const matRed = new THREE.MeshStandardMaterial({ color: '#DC2626', metalness: 0.3, roughness: 0.4 });
+        const matBlue = new THREE.MeshStandardMaterial({ color: '#2563EB', metalness: 0.4, roughness: 0.3 });
+        const matCable = new THREE.MeshStandardMaterial({ color: '#1A1A2E', metalness: 0.9, roughness: 0.2 });
+        const matOrange = new THREE.MeshStandardMaterial({ color: '#EA580C', metalness: 0.3, roughness: 0.4 });
+        const matConcrete = new THREE.MeshStandardMaterial({ color: '#D1D5DB', roughness: 0.9, metalness: 0.0 });
+
+        // === 地板 ===
+        const floorTex = (() => {
+            const cv = document.createElement('canvas');
+            cv.width = 512; cv.height = 512;
+            const ctx = cv.getContext('2d');
+            ctx.fillStyle = '#C8CCD0';
+            ctx.fillRect(0, 0, 512, 512);
+            ctx.strokeStyle = '#B0B4B8';
+            ctx.lineWidth = 2;
+            for (let i = 0; i <= 8; i++) {
+                ctx.beginPath(); ctx.moveTo(i * 64, 0); ctx.lineTo(i * 64, 512); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(0, i * 64); ctx.lineTo(512, i * 64); ctx.stroke();
+            }
+            const t = new THREE.CanvasTexture(cv);
+            t.wrapS = THREE.RepeatWrapping; t.wrapT = THREE.RepeatWrapping;
+            t.repeat.set(15, 15);
+            return t;
+        })();
         const floor = new THREE.Mesh(
             new THREE.PlaneGeometry(200, 200),
-            new THREE.MeshStandardMaterial({ color: '#e2e8f0', roughness: 0.8 })
+            new THREE.MeshStandardMaterial({ map: floorTex, roughness: 0.85, metalness: 0.0 })
         );
         floor.rotation.x = -Math.PI / 2;
         floor.receiveShadow = true;
         scene.add(floor);
-        scene.add(new THREE.GridHelper(120, 12, 0x94a3b8, 0xcbd5e1));
 
-        // 輔助投影 (Drop Shadow Marker)
+        // === 投影標記 ===
         const shadowMarkerGeo = new THREE.RingGeometry(0.1, 0.8, 32);
-        const shadowMarkerMat = new THREE.MeshBasicMaterial({ 
-            color: 0x000000, 
-            transparent: true, 
-            opacity: 0.3,
-            side: THREE.DoubleSide
-        });
+        const shadowMarkerMat = new THREE.MeshBasicMaterial({ color: 0xff0000, transparent: true, opacity: 0.4, side: THREE.DoubleSide });
         const shadowMarker = new THREE.Mesh(shadowMarkerGeo, shadowMarkerMat);
         shadowMarker.rotation.x = -Math.PI / 2;
-        shadowMarker.position.y = 0.02; 
+        shadowMarker.position.y = 0.02;
         scene.add(shadowMarker);
 
-        // --- 4. 場景物件 ---
-        const craneGroup = new THREE.Group();
-        scene.add(craneGroup);
+        // === 結構常數 ===
+        // bridgeY(25) = 柱頂高度 = 軌道樑中心高度
+        // 軌道面 (rail top) = bridgeY + 1 (軌道樑上翼板+軌道頭)
+        const COL_H = state.bridgeY;      // 柱高 25
+        const RUNWAY_Y = COL_H;           // 軌道樑中心 25
+        const RAIL_SURFACE = COL_H + 1;   // 軌面 26 (端樑輪子踩這裡)
+        const GIRDER_H = 2.5;             // 箱型樑高度
+        const GIRDER_W = 1.8;             // 箱型樑寬
+        const GIRDER_SPAN = 96;           // 樑跨距 (柱間距100，內縮避穿模)
+        const GIRDER_SPACING = 5;         // 雙樑中心間距
+        const END_TRUCK_H = 1.8;          // 端樑總高
+        // bridgeGroup 座標系: local y=0 = 端樑輪底 = 世界 RAIL_SURFACE
+        // 端樑: y=0.2 ~ END_TRUCK_H
+        // 樑底: y=END_TRUCK_H, 樑頂: y=END_TRUCK_H+GIRDER_H
+        const GIRDER_BOT = END_TRUCK_H;              // 樑底 local y
+        const GIRDER_TOP = END_TRUCK_H + GIRDER_H;   // 樑頂 local y
+        const PIVOT_WORLD_Y = RAIL_SURFACE + GIRDER_BOT; // 鋼索出口世界 y = 27.8
 
-        const matMetalDark = new THREE.MeshStandardMaterial({ color: '#334155' });
-        const matMetalLight = new THREE.MeshStandardMaterial({ color: '#64748b' });
-        
-        const railL = new THREE.Mesh(new THREE.BoxGeometry(2, 2, 100), matMetalDark);
-        railL.position.set(-50, state.bridgeY + 1, 0); scene.add(railL);
-        const railR = new THREE.Mesh(new THREE.BoxGeometry(2, 2, 100), matMetalDark);
-        railR.position.set(50, state.bridgeY + 1, 0); scene.add(railR);
-        
-        [[-50, -45], [-50, 45], [50, -45], [50, 45]].forEach(p => {
-            const post = new THREE.Mesh(new THREE.BoxGeometry(2, state.bridgeY + 1, 2), matMetalLight);
-            post.position.set(p[0], (state.bridgeY + 1)/2, p[1]); scene.add(post);
+        // === H型鋼立柱 ===
+        function createHBeamColumn(height, x, z) {
+            const flangeW = 1.4;
+            const flangeT = 0.18;
+            const webT = 0.14;
+            const web = new THREE.Mesh(new THREE.BoxGeometry(webT, height, flangeW), matDarkSteel);
+            web.position.set(x, height / 2, z); web.castShadow = true; scene.add(web);
+            [-1, 1].forEach(s => {
+                const f = new THREE.Mesh(new THREE.BoxGeometry(flangeW, height, flangeT), matDarkSteel);
+                f.position.set(x, height / 2, z + s * (flangeW / 2)); f.castShadow = true; scene.add(f);
+            });
+            const base = new THREE.Mesh(new THREE.BoxGeometry(2.5, 0.35, 2.5), matDarkSteel);
+            base.position.set(x, 0.175, z); base.receiveShadow = true; scene.add(base);
+            [1, height - 1].forEach(y => {
+                const rib = new THREE.Mesh(new THREE.BoxGeometry(flangeW, 0.12, flangeW), matLightSteel);
+                rib.position.set(x, y, z); scene.add(rib);
+            });
+        }
+
+        // === 軌道樑 (工字鋼 + 軌道頭) ===
+        function createRunwayBeam(length, x) {
+            const y = RUNWAY_Y;
+            const web = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.4, length), matRail);
+            web.position.set(x, y, 0); web.castShadow = true; scene.add(web);
+            const topF = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.2, length), matRail);
+            topF.position.set(x, y + 0.8, 0); scene.add(topF);
+            const botF = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.2, length), matRail);
+            botF.position.set(x, y - 0.8, 0); scene.add(botF);
+            const rail = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.2, length), matLightSteel);
+            rail.position.set(x, y + 1.0, 0); scene.add(rail);
+        }
+
+        // === 建造廠房 ===
+        const colZ = [-45, -30, -15, 0, 15, 30, 45];
+        colZ.forEach(z => { createHBeamColumn(COL_H, -50, z); createHBeamColumn(COL_H, 50, z); });
+
+        // 柱間繫梁 + 斜撐 (正確連接柱頂到柱頂)
+        colZ.forEach((z, i) => {
+            if (i >= colZ.length - 1) return;
+            const nz = colZ[i + 1];
+            const mid = (z + nz) / 2;
+            const span = nz - z;
+            const braceH = 6;
+            [-50, 50].forEach(rx => {
+                // 上繫梁
+                const tb = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.12, span), matLightSteel);
+                tb.position.set(rx, COL_H - braceH, mid); scene.add(tb);
+                // 下繫梁
+                const bb = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.12, span), matLightSteel);
+                bb.position.set(rx, COL_H, mid); scene.add(bb);
+                // X 斜撐 (角度 = 從 y 軸往 z 軸偏轉)
+                const dLen = Math.sqrt(span * span + braceH * braceH);
+                const dAng = Math.atan2(span, braceH);
+                const d1 = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, dLen, 6), matLightSteel);
+                d1.position.set(rx, COL_H - braceH / 2, mid);
+                d1.rotation.x = dAng; scene.add(d1);
+                const d2 = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, dLen, 6), matLightSteel);
+                d2.position.set(rx, COL_H - braceH / 2, mid);
+                d2.rotation.x = -dAng; scene.add(d2);
+            });
         });
 
-        const bridgeMesh = new THREE.Mesh(
-            new THREE.BoxGeometry(102, 2, 3), 
-            new THREE.MeshStandardMaterial({ color: '#fbbf24' }) 
-        );
-        scene.add(bridgeMesh);
+        createRunwayBeam(100, -50);
+        createRunwayBeam(100, 50);
 
-        const trolleyMesh = new THREE.Mesh(
-            new THREE.BoxGeometry(4, 2, 4),
-            new THREE.MeshStandardMaterial({ color: '#1d4ed8' }) 
-        );
-        scene.add(trolleyMesh);
+        // 護欄 (軌道樑外側，接在柱子翼板邊緣)
+        function createRailing(x, z1, z2) {
+            const len = z2 - z1;
+            const mid = (z1 + z2) / 2;
+            const ry = RUNWAY_Y + 2;
+            const top = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, len, 6), matYellow);
+            top.rotation.x = Math.PI / 2; top.position.set(x, ry, mid); scene.add(top);
+            const mid2 = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, len, 6), matYellow);
+            mid2.rotation.x = Math.PI / 2; mid2.position.set(x, ry - 0.5, mid); scene.add(mid2);
+            for (let z = z1; z <= z2; z += 5) {
+                const p = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 1.2, 6), matYellow);
+                p.position.set(x, ry - 0.6, z); scene.add(p);
+            }
+        }
+        createRailing(-50.8, -45, 45);
+        createRailing(50.8, -45, 45);
 
-        const cableGeo = new THREE.CylinderGeometry(0.04, 0.04, 1, 8);
-        cableGeo.translate(0, 0.5, 0); 
-        const cableMesh = new THREE.Mesh(cableGeo, new THREE.MeshStandardMaterial({ color: 0x222222 }));
-        scene.add(cableMesh);
+        // === 雙箱型大樑 ===
+        // bridgeGroup local: y=0 = 輪底(世界 RAIL_SURFACE)
+        const bridgeGroup = new THREE.Group();
 
+        function createBoxGirder(length, height, width, zOff, yBot) {
+            const g = new THREE.Group();
+            const yMid = yBot + height / 2;
+            const top = new THREE.Mesh(new THREE.BoxGeometry(length, 0.2, width), matYellow);
+            top.position.set(0, yBot + height, zOff); top.castShadow = true; g.add(top);
+            const bot = new THREE.Mesh(new THREE.BoxGeometry(length, 0.2, width), matYellow);
+            bot.position.set(0, yBot, zOff); bot.castShadow = true; g.add(bot);
+            [-1, 1].forEach(s => {
+                const w = new THREE.Mesh(new THREE.BoxGeometry(length, height, 0.15), matYellowBright);
+                w.position.set(0, yMid, zOff + s * (width / 2 - 0.075)); w.castShadow = true; g.add(w);
+            });
+            for (let rx = -length / 2 + 6; rx < length / 2; rx += 6) {
+                const rib = new THREE.Mesh(new THREE.BoxGeometry(0.08, height * 0.85, width * 0.85), matYellow);
+                rib.position.set(rx, yMid, zOff); g.add(rib);
+            }
+            return g;
+        }
+
+        bridgeGroup.add(createBoxGirder(GIRDER_SPAN, GIRDER_H, GIRDER_W, -GIRDER_SPACING / 2, GIRDER_BOT));
+        bridgeGroup.add(createBoxGirder(GIRDER_SPAN, GIRDER_H, GIRDER_W, GIRDER_SPACING / 2, GIRDER_BOT));
+
+        // 端樑 (end truck) — 輪子在 local y≈0, 車體往上到 GIRDER_BOT
+        [-1, 1].forEach(side => {
+            const ex = side * GIRDER_SPAN / 2;
+            // 端樑車體
+            const body = new THREE.Mesh(new THREE.BoxGeometry(2.5, END_TRUCK_H - 0.4, 11), matDarkSteel);
+            body.position.set(ex, END_TRUCK_H / 2 + 0.2, 0); body.castShadow = true; bridgeGroup.add(body);
+            // 黃黑警示
+            const warn = new THREE.Mesh(new THREE.BoxGeometry(2.55, 0.4, 11.05), matWarning);
+            warn.position.set(ex, 0.4, 0); bridgeGroup.add(warn);
+            // 輪子 (在軌面上)
+            [-4.5, 4.5].forEach(wz => {
+                const wh = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 0.5, 16), matDarkSteel);
+                wh.rotation.x = Math.PI / 2; wh.position.set(ex, 0.4, wz); bridgeGroup.add(wh);
+            });
+            // 走行馬達
+            const em = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 1.2, 12), matBlue);
+            em.rotation.x = Math.PI / 2; em.position.set(ex, 0.8, 3.5); em.castShadow = true; bridgeGroup.add(em);
+        });
+
+        // 雙樑間橫撐
+        for (let cx = -GIRDER_SPAN / 2 + 10; cx < GIRDER_SPAN / 2; cx += 15) {
+            const cr = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.15, GIRDER_SPACING + GIRDER_W), matLightSteel);
+            cr.position.set(cx, GIRDER_TOP + 0.08, 0); bridgeGroup.add(cr);
+        }
+
+        // 走道 (樑頂外側)
+        const walkway = new THREE.Mesh(new THREE.BoxGeometry(GIRDER_SPAN, 0.08, 1.5), matLightSteel);
+        walkway.position.set(0, GIRDER_TOP + 0.05, GIRDER_SPACING / 2 + GIRDER_W / 2 + 0.8);
+        walkway.receiveShadow = true; bridgeGroup.add(walkway);
+        // 走道護欄
+        [1.1, 0.5].forEach((h, i) => {
+            const wr = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, GIRDER_SPAN, 8), matYellow);
+            wr.rotation.z = Math.PI / 2;
+            wr.position.set(0, GIRDER_TOP + h, GIRDER_SPACING / 2 + GIRDER_W / 2 + 1.5);
+            bridgeGroup.add(wr);
+        });
+
+        scene.add(bridgeGroup);
+
+        // === 小車 (trolley, local y=0 = 樑頂面) ===
+        const trolleyGroup = new THREE.Group();
+        const wheelGeo = new THREE.CylinderGeometry(0.35, 0.35, 0.3, 16);
+        [[-2, 0.2, -GIRDER_SPACING / 2], [2, 0.2, -GIRDER_SPACING / 2],
+         [-2, 0.2, GIRDER_SPACING / 2], [2, 0.2, GIRDER_SPACING / 2]].forEach(p => {
+            const w = new THREE.Mesh(wheelGeo, matDarkSteel);
+            w.rotation.x = Math.PI / 2; w.position.set(p[0], p[1], p[2]); trolleyGroup.add(w);
+        });
+        const trolleyFrame = new THREE.Mesh(new THREE.BoxGeometry(5, 0.8, GIRDER_SPACING + 2), matDarkSteel);
+        trolleyFrame.position.y = 0.8; trolleyFrame.castShadow = true; trolleyGroup.add(trolleyFrame);
+        const warningPanel = new THREE.Mesh(new THREE.BoxGeometry(5.05, 0.3, GIRDER_SPACING + 2.05), matWarning);
+        warningPanel.position.y = 0.35; trolleyGroup.add(warningPanel);
+        // 捲揚機 (穿過樑頂掛在雙樑之間)
+        const drum = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 3, 16), matLightSteel);
+        drum.rotation.z = Math.PI / 2; drum.position.set(0, -GIRDER_H / 2, 0); drum.castShadow = true; trolleyGroup.add(drum);
+        const motor = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 1.5, 12), matBlue);
+        motor.rotation.z = Math.PI / 2; motor.position.set(-1.5, 1.2, GIRDER_SPACING / 2 + 0.5); motor.castShadow = true; trolleyGroup.add(motor);
+        scene.add(trolleyGroup);
+
+        // === 鋼索 (雙線) ===
+        const cableGeo = new THREE.CylinderGeometry(0.03, 0.03, 1, 8);
+        cableGeo.translate(0, 0.5, 0);
+        const cable1 = new THREE.Mesh(cableGeo, matCable);
+        const cable2 = new THREE.Mesh(cableGeo, matCable);
+        scene.add(cable1);
+        scene.add(cable2);
+
+        // === 吊鉤組件 ===
         const payloadGroup = new THREE.Group();
-        const boxMesh = new THREE.Mesh(
-            new THREE.CylinderGeometry(0.8, 0.8, 1.2, 32),
-            new THREE.MeshStandardMaterial({ color: '#2563eb' })
+
+        // 滑車 (sheave block)
+        const sheaveBlock = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.8, 1.2), matDarkSteel);
+        sheaveBlock.position.y = 1.0;
+        sheaveBlock.castShadow = true;
+        payloadGroup.add(sheaveBlock);
+
+        // 滑輪
+        const sheave = new THREE.Mesh(new THREE.TorusGeometry(0.4, 0.1, 8, 16), matLightSteel);
+        sheave.position.y = 1.0;
+        sheave.rotation.y = Math.PI / 2;
+        payloadGroup.add(sheave);
+
+        // 吊鉤桿
+        const hookShaft = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.6, 8), matDarkSteel);
+        hookShaft.position.y = 0.3;
+        payloadGroup.add(hookShaft);
+
+        // 吊鉤 (用 TorusGeometry 做彎鉤)
+        const hookCurve = new THREE.Mesh(
+            new THREE.TorusGeometry(0.3, 0.08, 8, 16, Math.PI * 1.3),
+            matRed
         );
-        boxMesh.castShadow = false;
-        payloadGroup.add(boxMesh);
-        
-        const hook = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.6), matMetalDark);
-        hook.position.y = 0.9;
-        payloadGroup.add(hook);
+        hookCurve.position.y = -0.1;
+        hookCurve.rotation.x = Math.PI / 2;
+        hookCurve.rotation.z = -Math.PI * 0.15;
+        hookCurve.castShadow = true;
+        payloadGroup.add(hookCurve);
+
+        // 安全閂
+        const latch = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.5, 6), matOrange);
+        latch.position.set(0.15, -0.25, 0);
+        latch.rotation.z = -0.5;
+        payloadGroup.add(latch);
+
+        // 吊掛重物 (藍色圓柱)
+        const loadMesh = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.8, 0.8, 1.2, 32),
+            matBlue
+        );
+        loadMesh.position.y = 0.0;
+        loadMesh.castShadow = true;
+        payloadGroup.add(loadMesh);
+
         scene.add(payloadGroup);
 
+        // === 障礙物路線 ===
         function createCourse() {
             const pathPoints = [
                 {x:-26,z:0}, {x:-16,z:-16}, {x:16,z:-16}, {x:26,z:0},
                 {x:16,z:16}, {x:0,z:6}, {x:-16,z:16}, {x:-26,z:0}
-            ].map(p => new THREE.Vector3(p.x, 0.1, p.z));
-            const pathLine = new THREE.Line(
-                new THREE.BufferGeometry().setFromPoints(pathPoints),
-                new THREE.LineBasicMaterial({ color: '#0000ff', linewidth: 3 })
-            );
+            ].map(p => new THREE.Vector3(p.x, 0.05, p.z));
+
+            // 虛線路徑
+            const pathMat = new THREE.LineDashedMaterial({ color: '#3B82F6', dashSize: 1, gapSize: 0.5, linewidth: 1 });
+            const pathGeo = new THREE.BufferGeometry().setFromPoints(pathPoints);
+            const pathLine = new THREE.Line(pathGeo, pathMat);
+            pathLine.computeLineDistances();
             scene.add(pathLine);
 
-            const poleGeo = new THREE.CylinderGeometry(0.2, 0.2, 6, 16);
-            const poleMat = new THREE.MeshStandardMaterial({ color: '#f97316' });
-            [
+            // 障礙柱 (三角錐造型)
+            const polePositions = [
                 {x:-18,z:-18}, {x:-14,z:-14}, {x:18,z:-18}, {x:14,z:-14},
                 {x:28,z:0}, {x:24,z:0}, {x:18,z:18}, {x:14,z:14},
                 {x:2,z:8}, {x:-2,z:8}, {x:-18,z:18}, {x:-14,z:14},
                 {x:-24,z:2}, {x:-24,z:-2}
-            ].forEach(p => {
-                const pole = new THREE.Mesh(poleGeo, poleMat);
-                pole.position.set(p.x, 3, p.z);
+            ];
+            polePositions.forEach(p => {
+                const poleGroup = new THREE.Group();
+                // 柱身
+                const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.25, 5, 8), matOrange);
+                pole.position.y = 2.5;
                 pole.castShadow = true;
-                scene.add(pole);
+                poleGroup.add(pole);
+                // 反光條紋
+                for (let s = 0; s < 3; s++) {
+                    const stripe = new THREE.Mesh(
+                        new THREE.CylinderGeometry(0.18 - s * 0.02, 0.22 - s * 0.02, 0.3, 8),
+                        new THREE.MeshStandardMaterial({ color: '#FFFFFF', metalness: 0.1, roughness: 0.3 })
+                    );
+                    stripe.position.y = 1.0 + s * 1.5;
+                    poleGroup.add(stripe);
+                }
+                // 底座
+                const poleBase = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.6, 0.2, 8), matDarkSteel);
+                poleBase.position.y = 0.1;
+                poleBase.receiveShadow = true;
+                poleGroup.add(poleBase);
+
+                poleGroup.position.set(p.x, 0, p.z);
+                scene.add(poleGroup);
                 obstacles.push(pole);
+                pole.userData.group = poleGroup;
             });
 
-            createHurdle(0, -16, 2.0, 6, false); 
-            createHurdle(-21, 8, 2.0, 6, false); 
+            createHurdle(0, -16, 2.0, 6, false);
+            createHurdle(-21, 8, 2.0, 6, false);
             createWall(0, 6);
         }
 
         function createHurdle(x, z, h, w, vert) {
+            // 橫桿
             const bar = new THREE.Mesh(
-                new THREE.BoxGeometry(vert?0.2:w, 0.2, vert?w:0.2),
-                new THREE.MeshStandardMaterial({ color: '#ef4444' })
+                new THREE.CylinderGeometry(0.1, 0.1, vert ? w : w, 8),
+                matRed
             );
+            bar.rotation.z = vert ? 0 : Math.PI / 2;
             bar.position.set(x, h, z);
             bar.castShadow = true;
             scene.add(bar);
             obstacles.push(bar);
-            const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.1,0.1,h), new THREE.MeshStandardMaterial({color:'#64748b'}));
-            const l1=leg.clone(); l1.position.set(vert?x:x-w/2, h/2, vert?z-w/2:z); scene.add(l1);
-            const l2=leg.clone(); l2.position.set(vert?x:x+w/2, h/2, vert?z+w/2:z); scene.add(l2);
+
+            // 支撐腿
+            const legGeo = new THREE.CylinderGeometry(0.08, 0.1, h, 8);
+            const l1 = new THREE.Mesh(legGeo, matLightSteel);
+            l1.position.set(vert ? x : x - w / 2, h / 2, vert ? z - w / 2 : z);
+            l1.castShadow = true;
+            scene.add(l1);
+            const l2 = new THREE.Mesh(legGeo, matLightSteel);
+            l2.position.set(vert ? x : x + w / 2, h / 2, vert ? z + w / 2 : z);
+            l2.castShadow = true;
+            scene.add(l2);
             obstacles.push(l1); obstacles.push(l2);
+
+            // 腿底座
+            [l1, l2].forEach(leg => {
+                const legBase = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.25, 0.08, 8), matDarkSteel);
+                legBase.position.set(leg.position.x, 0.04, leg.position.z);
+                scene.add(legBase);
+            });
         }
 
         function createWall(x, z) {
-            const p = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 6, 16), new THREE.MeshStandardMaterial({color:'#ef4444'}));
-            const p1=p.clone(); p1.position.set(x-1.5, 3, z); scene.add(p1); obstacles.push(p1);
-            const p2=p.clone(); p2.position.set(x+1.5, 3, z); scene.add(p2); obstacles.push(p2);
+            const wallMat = matRed;
+            const p1 = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.15, 5, 8), wallMat);
+            p1.position.set(x - 1.5, 2.5, z); p1.castShadow = true; scene.add(p1); obstacles.push(p1);
+            const p2 = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.15, 5, 8), wallMat);
+            p2.position.set(x + 1.5, 2.5, z); p2.castShadow = true; scene.add(p2); obstacles.push(p2);
+            // 連接橫桿
+            const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 3, 8), matRed);
+            bar.rotation.z = Math.PI / 2;
+            bar.position.set(x, 4.5, z);
+            scene.add(bar);
         }
 
         createCourse();
 
-        // --- 5. 核心邏輯 ---
+        // === 核心邏輯 ===
         function updateVelocity(curr, target, accel, decel, dt) {
             if (target !== 0) {
                 if (curr < target) return Math.min(target, curr + accel * dt);
@@ -398,102 +644,67 @@
             }
         }
 
-        // --- 新增：視角控制 (球座標系統 + 多點觸控支援) ---
-        // 設定初始視角：半徑 25，仰角約 78 度 (接近平視)，水平角 0
+        // === 視角控制 ===
         const camSpherical = new THREE.Spherical(25, Math.PI / 2 - 0.2, 0);
-        
-        // 追蹤觸控點狀態
         const activePointers = {};
         let previousPointerPos = { x: 0, y: 0 };
         let previousPinchDist = -1;
 
         const pointerDownHandler = (e) => {
             activePointers[e.pointerId] = { x: e.clientX, y: e.clientY };
-            // 如果是單指剛按下去，記錄初始位置
             if (Object.keys(activePointers).length === 1) {
                 previousPointerPos = { x: e.clientX, y: e.clientY };
             }
         };
-
         const pointerMoveHandler = (e) => {
             if (!activePointers[e.pointerId]) return;
-
-            // 更新當前觸控點的位置
             activePointers[e.pointerId] = { x: e.clientX, y: e.clientY };
-            
             const keys = Object.keys(activePointers);
-
             if (keys.length === 1) {
-                // --- 單指：旋轉視角 ---
                 const deltaX = e.clientX - previousPointerPos.x;
                 const deltaY = e.clientY - previousPointerPos.y;
-
-                camSpherical.theta -= deltaX * 0.005; // 水平旋轉
-                camSpherical.phi -= deltaY * 0.005;   // 垂直旋轉
-                // 限制仰角避免穿模或翻轉
+                camSpherical.theta -= deltaX * 0.005;
+                camSpherical.phi -= deltaY * 0.005;
                 camSpherical.phi = THREE.MathUtils.clamp(camSpherical.phi, 0.1, Math.PI / 2 - 0.05);
-
                 previousPointerPos = { x: e.clientX, y: e.clientY };
-                previousPinchDist = -1; // 重置雙指距離
-                
+                previousPinchDist = -1;
             } else if (keys.length === 2) {
-                // --- 雙指：縮放視角 ---
                 const p1 = activePointers[keys[0]];
                 const p2 = activePointers[keys[1]];
-                
-                // 計算兩指之間的距離
                 const dist = Math.hypot(p1.x - p2.x, p1.y - p2.y);
-
                 if (previousPinchDist > 0) {
-                    const deltaDist = dist - previousPinchDist;
-                    const zoomSpeed = 0.05; // 縮放靈敏度
-                    
-                    camSpherical.radius -= deltaDist * zoomSpeed;
-                    // 限制最近與最遠的距離 (10 ~ 80)
+                    camSpherical.radius -= (dist - previousPinchDist) * 0.05;
                     camSpherical.radius = THREE.MathUtils.clamp(camSpherical.radius, 10, 80);
                 }
                 previousPinchDist = dist;
-                
-                // 更新單指紀錄，防止放開一指時畫面跳動
-                previousPointerPos = { x: e.clientX, y: e.clientY }; 
+                previousPointerPos = { x: e.clientX, y: e.clientY };
             }
         };
-
         const pointerUpHandler = (e) => {
             delete activePointers[e.pointerId];
-            
             const keys = Object.keys(activePointers);
-            if (keys.length < 2) {
-                previousPinchDist = -1;
-            }
-            // 雙指變單指時，無縫接軌單指的起始座標
-            if (keys.length === 1) {
-                previousPointerPos = { x: activePointers[keys[0]].x, y: activePointers[keys[0]].y };
-            }
+            if (keys.length < 2) previousPinchDist = -1;
+            if (keys.length === 1) previousPointerPos = { x: activePointers[keys[0]].x, y: activePointers[keys[0]].y };
         };
 
-        // 綁定觸控與滑鼠拖曳事件
         const canvasEl = renderer.domElement;
         canvasEl.addEventListener('pointerdown', pointerDownHandler);
         canvasEl.addEventListener('pointermove', pointerMoveHandler);
         canvasEl.addEventListener('pointerup', pointerUpHandler);
         canvasEl.addEventListener('pointercancel', pointerUpHandler);
         canvasEl.addEventListener('pointerleave', pointerUpHandler);
-
-        // 額外支援：電腦滑鼠滾輪縮放
         canvasEl.addEventListener('wheel', (e) => {
             e.preventDefault();
-            camSpherical.radius += e.deltaY * 0.05; // 滾輪靈敏度
+            camSpherical.radius += e.deltaY * 0.05;
             camSpherical.radius = THREE.MathUtils.clamp(camSpherical.radius, 10, 80);
         }, { passive: false });
-        // -----------------------------------------------------------
 
+        // === 動畫迴圈 ===
         function animate() {
             requestAnimationFrame(animate);
             const dt = Math.min(clock.getDelta(), 0.05);
 
-            // 1. 速度更新
-            let tgB=0, tgT=0, tgH=0;
+            let tgB = 0, tgT = 0, tgH = 0;
             if (state.move.north) tgB = -REAL_SPEEDS.bridge;
             if (state.move.south) tgB = REAL_SPEEDS.bridge;
             if (state.move.west) tgT = -REAL_SPEEDS.trolley;
@@ -505,12 +716,10 @@
             state.velocity.trolley = updateVelocity(state.velocity.trolley, tgT, state.physics.accel.trolley, state.physics.decel.trolley, dt);
             state.velocity.hoist = updateVelocity(state.velocity.hoist, tgH, state.physics.accel.hoist, state.physics.decel.hoist, dt);
 
-            // 2. 位置積分
             state.bridgeZ += state.velocity.bridge * dt;
             state.trolleyX += state.velocity.trolley * dt;
             state.cableLength += state.velocity.hoist * dt;
 
-            // 邊界檢查
             if (state.bridgeZ < -state.limits.z || state.bridgeZ > state.limits.z) {
                 state.bridgeZ = THREE.MathUtils.clamp(state.bridgeZ, -state.limits.z, state.limits.z);
                 state.velocity.bridge = 0;
@@ -521,13 +730,14 @@
             }
             state.cableLength = THREE.MathUtils.clamp(state.cableLength, state.limits.minL, state.limits.maxL);
 
-            // 3. 更新機械視覺
-            bridgeMesh.position.z = state.bridgeZ;
-            bridgeMesh.position.y = state.bridgeY;
-            trolleyMesh.position.set(state.trolleyX, state.bridgeY, state.bridgeZ);
+            // 更新大樑 (local y=0 = 輪底, 世界 y = RAIL_SURFACE)
+            bridgeGroup.position.set(0, RAIL_SURFACE, state.bridgeZ);
 
-            // 4. 物理運算
-            const pivot = new THREE.Vector3(state.trolleyX, state.bridgeY, state.bridgeZ);
+            // 更新小車 (local y=0 = 樑頂, 世界 y = RAIL_SURFACE + GIRDER_TOP)
+            trolleyGroup.position.set(state.trolleyX, RAIL_SURFACE + GIRDER_TOP, state.bridgeZ);
+
+            // 物理 pivot = 樑底出線口
+            const pivot = new THREE.Vector3(state.trolleyX, PIVOT_WORLD_Y, state.bridgeZ);
             let temp = payloadPos.clone();
             let vel = payloadPos.clone().sub(payloadPrevPos).multiplyScalar(DAMPING);
             let next = payloadPos.clone().add(vel).add(gravity.clone().multiplyScalar(dt * dt));
@@ -538,48 +748,48 @@
                 diff.multiplyScalar(state.cableLength / dist);
                 next = pivot.clone().add(diff);
             }
-
-            if (next.y < 0.6) {
-                next.y = 0.6;
-                // 地面摩擦
-                payloadPrevPos.x = THREE.MathUtils.lerp(payloadPrevPos.x, next.x, 0.2); 
+            if (next.y < 1.2) {
+                next.y = 1.2;
+                payloadPrevPos.x = THREE.MathUtils.lerp(payloadPrevPos.x, next.x, 0.2);
                 payloadPrevPos.z = THREE.MathUtils.lerp(payloadPrevPos.z, next.z, 0.2);
             }
-
             payloadPrevPos.copy(temp);
             payloadPos.copy(next);
             payloadGroup.position.copy(payloadPos);
 
-            // 5. 更新鋼索與鏡頭
-            const cableVec = new THREE.Vector3().subVectors(new THREE.Vector3(payloadPos.x, payloadPos.y+0.9, payloadPos.z), pivot);
-            cableMesh.position.copy(pivot);
-            cableMesh.scale.set(1, cableVec.length(), 1);
-            if (cableVec.length() > 0.001) {
-                cableMesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0), cableVec.normalize());
-            }
+            // 更新雙鋼索
+            const cableOffset = 0.3;
+            [cable1, cable2].forEach((cable, i) => {
+                const ox = i === 0 ? -cableOffset : cableOffset;
+                const top = new THREE.Vector3(state.trolleyX + ox, PIVOT_WORLD_Y, state.bridgeZ);
+                const bot = new THREE.Vector3(payloadPos.x + ox, payloadPos.y + 0.9, payloadPos.z);
+                const cVec = new THREE.Vector3().subVectors(bot, top);
+                cable.position.copy(top);
+                cable.scale.set(1, cVec.length(), 1);
+                if (cVec.length() > 0.001) {
+                    cable.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), cVec.normalize());
+                }
+            });
 
-            // 更新陰影標記位置
+            // 投影標記
             shadowMarker.position.x = payloadPos.x;
             shadowMarker.position.z = payloadPos.z;
 
-            // --- 視角控制 (球座標計算 + 永遠平滑跟隨) ---
+            // 相機跟隨
             const currentCamOffset = new THREE.Vector3().setFromSpherical(camSpherical);
             const targetCamPos = payloadPos.clone().add(currentCamOffset);
-            
-            // 確保相機不低於人員站立高度
-            if(targetCamPos.y < 1.7) targetCamPos.y = 1.7;
-
+            if (targetCamPos.y < 1.7) targetCamPos.y = 1.7;
             camera.position.lerp(targetCamPos, 0.1);
             camera.lookAt(payloadPos.x, payloadPos.y + 1, payloadPos.z);
 
-            // 簡單碰撞
-            const pBox = new THREE.Box3().setFromObject(boxMesh);
+            // 碰撞檢測
+            const pBox = new THREE.Box3().setFromObject(payloadGroup);
             pBox.expandByScalar(-0.1);
             let hit = false;
             obstacles.forEach(o => {
                 if (pBox.intersectsBox(new THREE.Box3().setFromObject(o))) {
                     hit = true;
-                    if(!o.userData.hit) { o.userData.hit=true; o.material.emissive.setHex(0xff0000); }
+                    if (!o.userData.hit) { o.userData.hit = true; o.material.emissive.setHex(0xff0000); }
                 }
             });
             collisionFlash.style.borderWidth = hit ? '5px' : '0px';
@@ -588,28 +798,30 @@
         }
 
         function resetGame() {
-            state.bridgeZ = 0; state.trolleyX = -26; state.cableLength = state.bridgeY - 0.6;
-            state.velocity = { bridge:0, trolley:0, hoist:0 };
-            payloadPos.set(-26, 0.6, 0); payloadPrevPos.copy(payloadPos);
-            obstacles.forEach(o => { o.userData.hit=false; o.material.emissive.setHex(0x000000); });
+            state.bridgeZ = 0; state.trolleyX = -26; state.cableLength = PIVOT_WORLD_Y - 0.6;
+            state.velocity = { bridge: 0, trolley: 0, hoist: 0 };
+            payloadPos.set(-26, 1.2, 0); payloadPrevPos.copy(payloadPos);
+            obstacles.forEach(o => { o.userData.hit = false; o.material.emissive.setHex(0x000000); });
         }
 
         // 綁定操作
-        function setMove(act, down) { state.move[act] = down; const el=document.getElementById('btn-'+act); if(el) down?el.classList.add('active'):el.classList.remove('active'); }
-        ['north','south','east','west','up','down'].forEach(k => {
-            const btn = document.getElementById('btn-'+k);
-            if(!btn) return;
+        function setMove(act, down) {
+            state.move[act] = down;
+            const el = document.getElementById('btn-' + act);
+            if (el) down ? el.classList.add('active') : el.classList.remove('active');
+        }
+        ['north', 'south', 'east', 'west', 'up', 'down'].forEach(k => {
+            const btn = document.getElementById('btn-' + k);
+            if (!btn) return;
             const start = (e) => { e.preventDefault(); setMove(k, true); };
             const end = (e) => { e.preventDefault(); setMove(k, false); };
-            btn.addEventListener('mousedown', start); btn.addEventListener('touchstart', start, {passive:false});
+            btn.addEventListener('mousedown', start); btn.addEventListener('touchstart', start, { passive: false });
             btn.addEventListener('mouseup', end); btn.addEventListener('touchend', end);
             btn.addEventListener('mouseleave', end); btn.addEventListener('touchcancel', end);
         });
 
-        // 啟動
         resetGame();
         animate();
-
     </script>
 </body>
 </html>
